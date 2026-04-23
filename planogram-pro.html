@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Planogram · Ost og pålæg</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@zxing/library@0.21.0/umd/index.min.js"></script>
+<style>
+  :root {
+    /* Dark theme (default) */
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface2: #1a1e28;
+    --surface3: #242935;
+    --border: #2a3040;
+    --border-strong: #3a4155;
+    --accent: #00d4ff;
+    --accent-soft: rgba(0, 212, 255, 0.1);
+    --success: #4ade80;
+    --success-soft: rgba(74, 222, 128, 0.1);
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.1);
+    --text: #e8eaf0;
+    --text-dim: #8b92a8;
+    --text-faint: #5a6378;
+    --highlight: #ffd700;
+    --done: #4ade80;
+    --shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+
+  [data-theme="light"] {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #f0f3f8;
+    --surface3: #e4e9f1;
+    --border: #d8dde7;
+    --border-strong: #c0c8d5;
+    --accent: #0284c7;
+    --accent-soft: rgba(2, 132, 199, 0.1);
+    --success: #16a34a;
+    --success-soft: rgba(22, 163, 74, 0.1);
+    --warning: #d97706;
+    --danger: #dc2626;
+    --danger-soft: rgba(220, 38, 38, 0.1);
+    --text: #1a202c;
+    --text-dim: #64748b;
+    --text-faint: #94a3b8;
+    --highlight: #ca8a04;
+    --done: #16a34a;
+    --shadow: 0 10px 40px rgba(0,0,0,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), #0284c7);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: #fff;
+    font-size: 15px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .logo-text h1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .logo-text p {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+    display: flex;
+    gap: 8px;
+  }
+
+  .search-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px 10px 42px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  .btn-scan {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  [data-theme="light"] .btn-scan { color: #fff; }
+
+  .btn-scan:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-soft); }
+  .btn-scan:active { transform: translateY(0); }
+
+  .icon-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.15s;
+  }
+
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* PROGRESS BAR */
+  .progress-section {
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .progress-bar {
+    flex: 1;
+    min-width: 150px;
+    height: 8px;
+    background: var(--surface3);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), #22c55e);
+    border-radius: 4px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0%;
+  }
+
+  .progress-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .progress-text .percent {
+    color: var(--success);
+  }
+
+  .quick-stats {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .stat-chip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .stat-chip strong {
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* FILTERS */
+  .filters-row {
+    padding: 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-chip {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .filter-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .filter-chip.new-style.active {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+  }
+
+  .filter-chip.remaining-style.active {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: #fff;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: flex;
+    height: calc(100vh - 155px);
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .sidebar h2 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    font-weight: 700;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .fag-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .fag-nav-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .fag-nav-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .fag-nav-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .fag-nav-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .fag-label {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .fag-sublabel {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .fag-nav-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .mini-progress {
+    width: 40px;
+    height: 3px;
+    background: var(--surface3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .mini-progress-fill {
+    height: 100%;
+    background: var(--success);
+    transition: width 0.3s;
+  }
+
+  .mini-progress-text {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+
+  /* DETAIL PANEL */
+  .detail-panel {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: none;
+  }
+
+  .detail-panel.visible { display: block; }
+
+  .detail-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .label { color: var(--text-dim); font-weight: 500; flex-shrink: 0; }
+  .detail-row .val { font-family: 'JetBrains Mono', monospace; font-weight: 600; text-align: right; word-break: break-word; }
+
+  .location-badge {
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--accent-soft), transparent);
+    border: 1.5px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .loc-main {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  .loc-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    font-weight: 500;
+  }
+
+  .replacement-info {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--success-soft);
+    border: 1px solid var(--success);
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--success);
+    line-height: 1.5;
+  }
+
+  .replacement-info strong {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  .btn-mark-done {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--success);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+
+  .btn-mark-done:hover { transform: translateY(-1px); }
+  .btn-mark-done.done { background: var(--surface3); color: var(--text-dim); }
+
+  /* FAG SECTION */
+  .fag-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .fag-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    gap: 12px;
+  }
+
+  .fag-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .fag-number {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent), #0284c7);
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .fag-title-block { min-width: 0; flex: 1; }
+  .fag-title { font-size: 14px; font-weight: 700; }
+  .fag-subtitle { font-size: 11px; color: var(--text-dim); margin-top: 2px; font-weight: 500; }
+
+  .fag-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .badge {
+    padding: 3px 9px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+
+  .badge-accent { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+  .badge-success { background: var(--success-soft); color: var(--success); border: 1px solid var(--success); }
+
+  .fag-mini-progress {
+    width: 60px;
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .fag-mini-fill { height: 100%; background: var(--success); transition: width 0.3s; }
+
+  /* SHELVES */
+  .shelf-container {
+    padding: 12px 14px;
+  }
+
+  .shelf { margin-bottom: 10px; }
+
+  .shelf-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 5px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+
+  .shelf-label .notch-tag {
+    background: var(--surface3);
+    color: var(--text-dim);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+  }
+
+  .shelf-row {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    background: linear-gradient(180deg, var(--surface2), var(--surface));
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    min-height: 58px;
+  }
+
+  /* PRODUCT CARD */
+  .product-card {
+    background: var(--surface3);
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 115px;
+    max-width: 170px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .product-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,212,255,0.1);
+  }
+
+  .product-card.highlighted {
+    border-color: var(--highlight);
+    background: rgba(255,215,0,0.12);
+    box-shadow: 0 0 0 3px rgba(255,215,0,0.25);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .product-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .product-card.done {
+    opacity: 0.55;
+    background: var(--success-soft);
+    border-color: var(--success);
+  }
+
+  .product-card.done .product-name {
+    text-decoration: line-through;
+    text-decoration-color: var(--success);
+  }
+
+  .product-card.is-new::before {
+    content: 'NY';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--success);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+    z-index: 2;
+  }
+
+  .product-card.done::after {
+    content: '✓';
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    background: var(--success);
+    color: #fff;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(255,215,0,0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(255,215,0,0.1); }
+  }
+
+  .product-pos {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  .product-name {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 3px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .product-ean {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+
+  /* SEARCH RESULTS */
+  .search-results {
+    display: none;
+    position: fixed;
+    top: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(600px, 92vw);
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    border-radius: 14px;
+    z-index: 200;
+    max-height: 460px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    flex-direction: column;
+  }
+
+  .search-results.visible { display: flex; }
+
+  .search-results-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .close-btn:hover { color: var(--text); background: var(--surface3); }
+
+  .results-list { overflow-y: auto; flex: 1; }
+
+  .result-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.1s;
+  }
+
+  .result-item:hover { background: var(--accent-soft); }
+  .result-item:last-child { border-bottom: none; }
+
+  .result-info { flex: 1; min-width: 0; }
+  .result-name { font-size: 13px; font-weight: 600; }
+  .result-name mark { background: rgba(255,215,0,0.3); color: var(--highlight); border-radius: 2px; padding: 0 2px; }
+  .result-ean { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); margin-top: 3px; }
+
+  .result-location {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-weight: 700;
+    flex-shrink: 0;
+    border: 1px solid var(--accent);
+  }
+
+  .tag {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    margin-right: 5px;
+    letter-spacing: 0.03em;
+  }
+
+  .tag-new { background: var(--success); color: #fff; }
+  .tag-done { background: var(--success); color: #fff; }
+
+  .no-results { padding: 32px; text-align: center; color: var(--text-dim); font-size: 14px; font-weight: 500; }
+
+  /* SCANNER MODAL */
+  .scanner-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scanner-modal.visible { display: flex; }
+
+  .scanner-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7), transparent);
+  }
+
+  .scanner-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .scanner-close {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scanner-viewport {
+    position: relative;
+    width: min(90vw, 500px);
+    aspect-ratio: 4/3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 0 60px rgba(0,212,255,0.3);
+  }
+
+  #scannerVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scanner-frame {
+    position: absolute;
+    inset: 15% 10%;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+
+  .scanner-frame::before,
+  .scanner-frame::after,
+  .scanner-frame > span::before,
+  .scanner-frame > span::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--accent);
+  }
+
+  .scanner-frame::before { top: -3px; left: -3px; border-right: none; border-bottom: none; border-radius: 12px 0 0 0; }
+  .scanner-frame::after { top: -3px; right: -3px; border-left: none; border-bottom: none; border-radius: 0 12px 0 0; }
+  .scanner-frame > span::before { bottom: -3px; left: -3px; border-right: none; border-top: none; border-radius: 0 0 0 12px; }
+  .scanner-frame > span::after { bottom: -3px; right: -3px; border-left: none; border-top: none; border-radius: 0 0 12px 0; }
+
+  .scan-line {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    top: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: scanMove 2s ease-in-out infinite;
+  }
+
+  @keyframes scanMove {
+    0%, 100% { top: 20%; }
+    50% { top: 80%; }
+  }
+
+  .scanner-hint {
+    margin-top: 24px;
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+
+  .scanner-hint strong {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+
+  .scanner-manual {
+    margin-top: 14px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .scanner-manual:hover { background: rgba(255,255,255,0.15); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1.5px solid var(--accent);
+    color: var(--text);
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 2000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 90vw;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--success); }
+  .toast.warning { border-color: var(--warning); }
+  .toast.error { border-color: var(--danger); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { height: auto; flex-direction: column; }
+    .content { height: auto; padding: 12px; }
+    .search-wrap { order: 3; width: 100%; }
+    .filters-row { padding: 8px 12px; }
+    .progress-section { padding: 10px 12px; }
+    .header { padding: 10px 12px; }
+  }
+
+  /* Keyboard hint */
+  kbd {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+  }
+
+  .kb-hint {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .reset-menu {
+    padding: 12px;
+    margin-top: 8px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .btn-reset {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-reset:hover { background: var(--danger-soft); }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">08</div>
+    <div class="logo-text">
+      <h1>Ost og pålæg</h1>
+      <p>8 fag · 125 cm · City SP2</p>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" id="searchInput" placeholder="Søg efter produkt, EAN eller position..." autocomplete="off">
+    <button class="btn-scan" onclick="openScanner()">
+      <span>📷</span>
+      <span>Scan</span>
+    </button>
+  </div>
+  <button class="icon-btn" onclick="toggleTheme()" title="Skift tema" id="themeBtn">🌙</button>
+</div>
+
+<div class="progress-section">
+  <div class="progress-text">
+    <span id="progressCount">0 / 311</span>
+    <span class="percent" id="progressPercent">0%</span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div class="quick-stats">
+    <div class="stat-chip"><div class="dot" style="background:var(--accent)"></div>Total <strong>311</strong></div>
+    <div class="stat-chip"><div class="dot" style="background:var(--success)"></div>Nye <strong>15</strong></div>
+    <div class="stat-chip"><div class="dot" style="background:var(--danger)"></div>Udgået <strong>7</strong></div>
+  </div>
+</div>
+
+<div class="filters-row">
+  <button class="filter-chip active" onclick="setFilter('all', this)">Alle produkter</button>
+  <button class="filter-chip new-style" onclick="setFilter('new', this)">🆕 Kun nye</button>
+  <button class="filter-chip remaining-style" onclick="setFilter('remaining', this)">⏳ Mangler</button>
+  <button class="filter-chip" onclick="setFilter('done', this)">✓ Færdige</button>
+  <span class="kb-hint" style="margin-left:auto;align-self:center"><kbd>Ctrl+K</kbd> søg · <kbd>S</kbd> scan · <kbd>Esc</kbd> luk</span>
+</div>
+
+<div class="main">
+  <div class="content" id="contentArea"></div>
+
+  <aside class="sidebar">
+    <h2>Hurtig navigation</h2>
+    <div class="fag-nav" id="fagNav"></div>
+
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-title">📦 Produkt detaljer</div>
+      <div id="detailContent"></div>
+    </div>
+
+    <div class="reset-menu">
+      <button class="btn-reset" onclick="resetProgress()">🗑️ Nulstil fremgang</button>
+    </div>
+  </aside>
+</div>
+
+<!-- SEARCH RESULTS -->
+<div class="search-results" id="searchResults">
+  <div class="search-results-header">
+    <span id="resultsLabel">Resultater</span>
+    <button class="close-btn" onclick="closeSearch()">✕</button>
+  </div>
+  <div class="results-list" id="resultsList"></div>
+</div>
+
+<!-- SCANNER MODAL -->
+<div class="scanner-modal" id="scannerModal">
+  <div class="scanner-header">
+    <div class="scanner-title">
+      <span>📷</span>
+      <span>Scan stregkode</span>
+    </div>
+    <button class="scanner-close" onclick="closeScanner()">✕</button>
+  </div>
+  <div class="scanner-viewport">
+    <video id="scannerVideo" autoplay muted playsinline></video>
+    <div class="scanner-frame"><span></span></div>
+    <div class="scan-line"></div>
+  </div>
+  <div class="scanner-hint">
+    <strong id="scannerStatus">Ret kameraet mod stregkoden</strong>
+    <span>EAN-13, EAN-8, UPC, Code 128</span>
+  </div>
+  <button class="scanner-manual" onclick="manualEntry()">⌨️ Indtast EAN manuelt</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">📍</span>
+  <span id="toastMsg">Markeret</span>
+</div>
+
+<script>
+// ============ DATA ============
+const newEANs = new Set([
+  '5704000001023','5704000000729','5707490011077','5705900004206',
+  '5701293658712','5707196302851','5704000519252','5715348158461',
+  '5715348158485','5715348158508','5704080960272','7340191178878',
+  '7340191178861','5744007660007','5744007660014'
+]);
+
+// Removed products (with warning info)
+const removedProducts = {
+  '7340191153691': { name: 'COOP MARINEREDE SILD I BID 500/245 G', replacedBy: '7340191178861', replacedByName: 'COOP MARINEREDE SILD I BIDDER 500/245 G' },
+  '7340191153752': { name: 'COOP SENNEP SILD I BID 490 G', replacedBy: '7340191178878', replacedByName: 'COOP SENNEPSILD I BIDDER 490 G' },
+  '5711865716610': { name: 'XTRA GRAVAD LAKS I SKRIVER 100 G', replacedBy: null },
+  '5707490011138': { name: 'TIMS MØRK COOKIEDEJ TRIPPEL CHOKO 300 G', replacedBy: null },
+  '5701595142001': { name: 'FRIKADELLER 260 G', replacedBy: null },
+  '5704000460882': { name: 'JENSENS KØKKEN WHISKY SAUCE 250 ML', replacedBy: null },
+  '5756111410058': { name: 'CARPACCIO M OLIVENOLIE OG PARMESAN 115 G', replacedBy: null },
+};
+
+// Replacements map: new EAN -> old product
+const replacements = {
+  '5704000001023': 'GROVH POSTEJ STRYHNS 200 G (nyt design)',
+  '5704000000729': 'FRANSK LEVERPOSTEJ STRYHN\'S 200 G (nyt design)',
+  '5715348158461': 'IRMA SURDEJSPIZZABUND 480 G 2 STK (nyt produkt)',
+  '5715348158485': 'IRMA SURDEJSPIZZABUND 240 G (nyt produkt)',
+  '5715348158508': 'IRMA FULDKORN SURDEJSPIZZABUND 240 G (nyt produkt)',
+  '7340191178861': 'Erstatter: COOP MARINEREDE SILD I BID 500/245 G',
+  '7340191178878': 'Erstatter: COOP SENNEP SILD I BID 490 G',
+};
+
+const fagLabels = {
+  1: { title: 'Fag 1 — Fisk', sub: 'Laks · rejer · sild · fiskesalater' },
+  2: { title: 'Fag 2 — Salater', sub: 'Færdigsalater · leverpostej · K-salat' },
+  3: { title: 'Fag 3 — Pålæg', sub: 'Spegepølse · skinke · kylling' },
+  4: { title: 'Fag 4 — Pølser', sub: 'Hotdog · bacon · kogt pålæg' },
+  5: { title: 'Fag 5 — Middag', sub: 'Saucer · pasta · red maden' },
+  6: { title: 'Fag 6 — Italiensk', sub: 'Hummus · dej · prosciutto' },
+  7: { title: 'Fag 7 — Hele oste', sub: 'Brie · emmentaler · mozzarella' },
+  8: { title: 'Fag 8 — Skiveost', sub: 'Philadelphia · Buko · Danbo' },
+};
+
+const products = [
+  {fag:1,hylde:1,notch:42,pos:1,ean:'5706911028038',name:'LAKSETOPPING 150 G',koli:8,facings:1},
+  {fag:1,hylde:1,notch:42,pos:2,ean:'5715569948896',name:'COOP PULLED LAKS 125 G',koli:10,facings:1},
+  {fag:1,hylde:1,notch:42,pos:3,ean:'7340191156197',name:'COOP RØGET LAKS ASC 100 G',koli:8,facings:1},
+  {fag:1,hylde:1,notch:42,pos:4,ean:'7340191156203',name:'COOP GRAVAD LAKS ASC 100 G',koli:8,facings:1},
+  {fag:1,hylde:1,notch:42,pos:5,ean:'7340011317241',name:'ØKO ÄNGLAMARK KOLDRØGET LAKS 100 G',koli:6,facings:1},
+  {fag:1,hylde:1,notch:42,pos:6,ean:'5715348128471',name:'IRMA RØGET LAKS ASC 125 G',koli:8,facings:1},
+  {fag:1,hylde:2,notch:33,pos:7,ean:'5701665130129',name:'RØGET ØRRED 100 G',koli:10,facings:1},
+  {fag:1,hylde:2,notch:33,pos:8,ean:'5706911029202',name:'RØGET DANSK LAKS I SKIVER ASC 100 G',koli:10,facings:1},
+  {fag:1,hylde:2,notch:33,pos:9,ean:'5711865716627',name:'COOP VARMRØGET LAKS MED PEBER 125 G',koli:6,facings:1},
+  {fag:1,hylde:2,notch:33,pos:10,ean:'5715348128518',name:'IRMA VARMRØGET LAKS M/HVIDLØG 125 G',koli:8,facings:1},
+  {fag:1,hylde:2,notch:33,pos:11,ean:'5715348128532',name:'IRMA VARMRØGET LAKS M/PEBER 125 G',koli:8,facings:1},
+  {fag:1,hylde:2,notch:33,pos:12,ean:'5706911029189',name:'SMOKEHOUSE VARMRØGET LAKS M/PEBER 200 G',koli:5,facings:1},
+  {fag:1,hylde:2,notch:33,pos:13,ean:'5706911029172',name:'SMOKEHOUSE VARMRØGET LAKS NATUREL 200 G',koli:5,facings:1},
+  {fag:1,hylde:2,notch:33,pos:14,ean:'5710326020242',name:'SEAFOOD SELECT VARMRØG ØRREDFILET 100G',koli:10,facings:1},
+  {fag:1,hylde:2,notch:33,pos:15,ean:'5710326018867',name:'VARMRØGET MAKREL MED PEBER 150 G',koli:6,facings:1},
+  {fag:1,hylde:3,notch:25,pos:16,ean:'7340191175853',name:'COOP REJER I LAGE 330/170 G',koli:6,facings:1},
+  {fag:1,hylde:3,notch:25,pos:17,ean:'5706911026997',name:'KAPTAJNENS FANGST REJER I LAGE 400/200 G',koli:6,facings:1},
+  {fag:1,hylde:3,notch:25,pos:18,ean:'5701263908670',name:'LAUNIS SKAGEN REJER MSC 360/170 G',koli:6,facings:1},
+  {fag:1,hylde:3,notch:25,pos:19,ean:'5740301217770',name:'XXL KUTTERREJER I LAGE 180/80 G',koli:12,facings:1},
+  {fag:1,hylde:3,notch:25,pos:20,ean:'7340191158290',name:'COOP REJER I LAGE L 680/350 G',koli:6,facings:1},
+  {fag:1,hylde:3,notch:25,pos:21,ean:'5705550305999',name:'AMANDA MAKRELKRÆS 100 G',koli:10,facings:1},
+  {fag:1,hylde:4,notch:17,pos:22,ean:'5715348092680',name:'COOP FISKEFRIKADELLER 340 G',koli:8,facings:1},
+  {fag:1,hylde:4,notch:17,pos:23,ean:'5730444919648',name:'HAVETS MINI FISKEFRIKADELLER JEKA 200 G',koli:10,facings:1},
+  {fag:1,hylde:4,notch:17,pos:24,ean:'5730444916272',name:'HAVETS LAKSEFRIKADELLER 4X65 G 260 G',koli:10,facings:1},
+  {fag:1,hylde:4,notch:17,pos:25,ean:'5730444915862',name:'HAVETS FISKEFRIKADELLER 4X65 G 260 G',koli:10,facings:1},
+  {fag:1,hylde:4,notch:17,pos:26,ean:'5730444919600',name:"HAVET'S FISKEFRIKADELLE JEKA 380 G",koli:7,facings:1},
+  {fag:1,hylde:4,notch:17,pos:27,ean:'5740301198260',name:'RG KAVIAR STENBIDERROGN SORT MSC 50 G',koli:6,facings:1},
+  {fag:1,hylde:4,notch:17,pos:28,ean:'5701263901596',name:'LYKKEBERG LAKSEPATE 200 G MSC',koli:12,facings:1},
+  {fag:1,hylde:4,notch:17,pos:29,ean:'5706911029905',name:'RØGET ØRRED MED PEBER ASC 100 G',koli:10,facings:1},
+  {fag:1,hylde:5,notch:9,pos:30,ean:'5701379132242',name:'IRMA KARRYRSILD GAMMELDAGS MODN BIDDER',koli:6,facings:1},
+  {fag:1,hylde:5,notch:9,pos:31,ean:'5701379132211',name:'IRMA MAR SILD GL MODNED BIDDER 500/245 G',koli:6,facings:1},
+  {fag:1,hylde:5,notch:9,pos:32,ean:'5701379222257',name:'IRMA KRYDDERSILD GL MOD BIDDER 250/500G',koli:6,facings:1},
+  {fag:1,hylde:5,notch:9,pos:33,ean:'5709345002865',name:'LYKKEBERG 1899 STEGTE SILD 500/250 G',koli:5,facings:1},
+  {fag:1,hylde:5,notch:9,pos:34,ean:'5709345003206',name:'KARRYSILD MED ÆBLE OG TIMIAN 350 G',koli:5,facings:1},
+  {fag:1,hylde:5,notch:9,pos:35,ean:'5701379321127',name:'RIVÖFJORDENS BENFRI SILD 100G/65G',koli:16,facings:1},
+  {fag:1,hylde:5,notch:9,pos:36,ean:'5704068017288',name:'K-SALAT GROV REMOULADE PS 250 G',koli:10,facings:1},
+  {fag:1,hylde:5,notch:9,pos:37,ean:'5704068017134',name:'K-SALAT ÆGTE MAYONNAISE PS 250 ML',koli:10,facings:1},
+  {fag:1,hylde:5,notch:9,pos:38,ean:'5702040890140',name:'BÄHNCKE DILDDRESSING 300 G',koli:8,facings:1},
+  {fag:1,hylde:6,notch:0,pos:39,ean:'7340191153820',name:'COOP KARRY SILD I BID 470 G',koli:6,facings:1},
+  {fag:1,hylde:6,notch:0,pos:40,ean:'7340191178861',name:'COOP MARINEREDE SILD I BIDDER 500/245 G',koli:6,facings:1},
+  {fag:1,hylde:6,notch:0,pos:41,ean:'7340191153721',name:'COOP KRYDDER SILD I BID 500/245 G',koli:6,facings:1},
+  {fag:1,hylde:6,notch:0,pos:42,ean:'7340191178878',name:'COOP SENNEPSILD I BIDDER 490 G',koli:6,facings:1},
+  {fag:1,hylde:6,notch:0,pos:43,ean:'7340191158030',name:'XTRA SILD MARINEREDE BIDDER SP 700/345 G',koli:6,facings:1},
+  {fag:1,hylde:6,notch:0,pos:44,ean:'5701379112503',name:'HIRTSHALS STORE FILETER 800/400G',koli:6,facings:1},
+  {fag:1,hylde:6,notch:0,pos:45,ean:'5706911028304',name:'HEL MAKREL 250 G',koli:10,facings:1},
+  {fag:2,hylde:1,notch:42,pos:46,ean:'5700382686025',name:'XTRA MAKRELSALAT 300 G',koli:8,facings:1},
+  {fag:2,hylde:1,notch:42,pos:47,ean:'5715569942047',name:'XTRA TUNSALAT 250G',koli:8,facings:1},
+  {fag:2,hylde:1,notch:42,pos:48,ean:'5715569942108',name:'XTRA SKINKESALAT 250G',koli:8,facings:1},
+  {fag:2,hylde:1,notch:42,pos:49,ean:'5700382686001',name:'XTRA HØNSESALAT 250 G',koli:8,facings:1},
+  {fag:2,hylde:1,notch:42,pos:50,ean:'5715569942085',name:'XTRA ITALIENSK SALAT 300G',koli:8,facings:1},
+  {fag:2,hylde:1,notch:42,pos:51,ean:'5700382685974',name:'XTRA RUSSISKSALAT 250 G',koli:8,facings:1},
+  {fag:2,hylde:2,notch:33,pos:52,ean:'5704000496751',name:'K-SALAT ITALIENSK SALAT SR 150 G',koli:9,facings:1},
+  {fag:2,hylde:2,notch:33,pos:53,ean:'5701018044707',name:'K-SALAT ÆGGESALAT 150 G',koli:9,facings:1},
+  {fag:2,hylde:2,notch:33,pos:54,ean:'5704000496164',name:'K-SALAT PEBERRODSSALAT 100 G',koli:9,facings:1},
+  {fag:2,hylde:2,notch:33,pos:55,ean:'5704000496829',name:'K-SALAT HØNS M PLUK HØNSEKØD SR 150 G',koli:9,facings:1},
+  {fag:2,hylde:2,notch:33,pos:56,ean:'5704000496744',name:'K-SALAT KYLLING M/BACON 150 G',koli:9,facings:1},
+  {fag:2,hylde:2,notch:33,pos:57,ean:'5704000496515',name:'K-SALAT FINTHAK SKINKE SR 150 G',koli:9,facings:1},
+  {fag:2,hylde:2,notch:33,pos:58,ean:'5715569942061',name:'XTRA KARRYSALAT 300G',koli:8,facings:1},
+  {fag:2,hylde:2,notch:33,pos:59,ean:'5707669210027',name:'KRAFT SKY 200 G',koli:8,facings:1},
+  {fag:2,hylde:2,notch:33,pos:60,ean:'5707196279092',name:'PÅLÆKKER KLASSIKER RULLEPØLSE 90 G',koli:12,facings:1},
+  {fag:2,hylde:3,notch:25,pos:61,ean:'5704000474544',name:'K-SALAT REJESALAT LÆKKERIER 150 G',koli:9,facings:1},
+  {fag:2,hylde:3,notch:25,pos:62,ean:'5701018044820',name:'K-SALAT MAKRELSALAT 150 G',koli:9,facings:1},
+  {fag:2,hylde:3,notch:25,pos:63,ean:'5704000496775',name:'K-SALAT TUNSALAT SR 150 G',koli:9,facings:1},
+  {fag:2,hylde:3,notch:25,pos:64,ean:'5704000491602',name:'K-SALAT KRABBESALAT 150 G',koli:9,facings:1},
+  {fag:2,hylde:3,notch:25,pos:65,ean:'5704000491619',name:'K-SALAT SKAGENSALAT 150 G',koli:9,facings:1},
+  {fag:2,hylde:3,notch:25,pos:66,ean:'4006229002630',name:'LILLE BJØRN MORTADELLA REINERT 80 G',koli:8,facings:1},
+  {fag:2,hylde:3,notch:25,pos:67,ean:'4000404049212',name:'BÖKLUNDER KALKUNSALAMI 80 G',koli:10,facings:1},
+  {fag:2,hylde:3,notch:25,pos:68,ean:'5705333099442',name:'HAMMEL SPEGEPØLSE DEN ORIG. SLICE 100 G',koli:12,facings:1},
+  {fag:2,hylde:3,notch:25,pos:69,ean:'5700383342265',name:'XTRA SALAMI, SKIVER 200 G',koli:12,facings:1},
+  {fag:2,hylde:5,notch:9,pos:70,ean:'5709760009081',name:'ØKO HANEGAL KYLLINGE LEVERPOSTEJ 200 G',koli:6,facings:1},
+  {fag:2,hylde:5,notch:9,pos:71,ean:'5709760086471',name:'ØKO PLANTEPOSTEJ HANEGAL 200 G',koli:6,facings:1},
+  {fag:2,hylde:5,notch:9,pos:72,ean:'7340011432906',name:'ØKO ÄNGLAMARK LEVERPOSTEJ 200 G',koli:6,facings:1},
+  {fag:2,hylde:5,notch:9,pos:73,ean:'5704000502476',name:'FRANSK VAC FAST LEVERPOSTEJ 160 G',koli:12,facings:1},
+  {fag:2,hylde:5,notch:9,pos:74,ean:'8595121893027',name:'SPANSK INSPIRERET PATÉ SANPAREIL 150 G',koli:13,facings:1},
+  {fag:2,hylde:5,notch:9,pos:75,ean:'5410321601261',name:'HVIDLØG PATÉ 250 G',koli:12,facings:1},
+  {fag:2,hylde:5,notch:9,pos:76,ean:'5708123004107',name:'CERVELATPØLSE LEIF HENRIKSEN 300 G',koli:21,facings:1},
+  {fag:2,hylde:5,notch:9,pos:77,ean:'5709760087171',name:'ØKO HANEGAL KYLLINGEKØDPØLSE 200 G',koli:6,facings:1},
+  {fag:2,hylde:5,notch:9,pos:78,ean:'5707196302851',name:'PÅLÆKKER JULEPOSTEJ 300 G',koli:12,facings:1},
+  {fag:2,hylde:6,notch:0,pos:79,ean:'7340011380054',name:'XTRA LEVERPOSTEJ 500 G',koli:12,facings:1},
+  {fag:2,hylde:6,notch:0,pos:80,ean:'7340011444435',name:'COOP BACON LEVERPOSTEJ 350 G',koli:12,facings:1},
+  {fag:2,hylde:6,notch:0,pos:81,ean:'5704000000729',name:'FRANSK LEVERPOSTEJ STRYHN\'S 200 G',koli:12,facings:1},
+  {fag:2,hylde:6,notch:0,pos:82,ean:'5704000001023',name:'GROVH POSTEJ STRYHNS 200 G',koli:12,facings:1},
+  {fag:2,hylde:6,notch:0,pos:83,ean:'5704000502391',name:'GROVHAKKET POSTEJ 400 G',koli:9,facings:1},
+  {fag:2,hylde:6,notch:0,pos:84,ean:'5707196233728',name:'BACON LEVERPOSTEJ TULIP 200 G',koli:8,facings:1},
+  {fag:3,hylde:1,notch:42,pos:85,ean:'5707196234053',name:'SØNDERJYSK SPEGEPØLSE PÅLÆKKER 125 G',koli:12,facings:1},
+  {fag:3,hylde:1,notch:42,pos:86,ean:'7340191163577',name:'COOP SANDWICH KYLLING SKIVER 100 G',koli:12,facings:1},
+  {fag:3,hylde:1,notch:42,pos:87,ean:'7340191163584',name:'COOP SANDWICH KYLLING SKIVER PEBER URTER',koli:12,facings:1},
+  {fag:3,hylde:1,notch:42,pos:88,ean:'5707196357332',name:'PÅLÆKKER KYLLING TOMAT & TIMIAN 90 G',koli:10,facings:1},
+  {fag:3,hylde:1,notch:42,pos:89,ean:'5707196357363',name:'PÅLÆKKER KYLLING KLASSISK SANDWICHSKIVER',koli:10,facings:1},
+  {fag:3,hylde:1,notch:42,pos:90,ean:'5707196179194',name:'DEN GRØNNE SLAGTER KYLLING M CHILI 100 G',koli:12,facings:1},
+  {fag:3,hylde:1,notch:42,pos:91,ean:'5707196093254',name:'DGS KYLLINGEBRYST 90 G',koli:8,facings:1},
+  {fag:3,hylde:1,notch:42,pos:92,ean:'5756111324249',name:'SKINKE GÅRDLYKKE 80 G',koli:8,facings:1},
+  {fag:3,hylde:1,notch:42,pos:93,ean:'5756111324201',name:'ROASTBEEF GÅRDLYKKE 60 G',koli:8,facings:1},
+  {fag:3,hylde:1,notch:42,pos:94,ean:'5756111324225',name:'RULLEPØLSE GÅRDLYKKE 80 G',koli:8,facings:1},
+  {fag:3,hylde:2,notch:33,pos:95,ean:'5707196154573',name:'HAMBURGERRYG PÅLÆKKER 90 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:96,ean:'7340011404422',name:'COOP SØNDERJYSK SPEGEPØLSE 115 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:97,ean:'7340011441083',name:'COOP KARTOFFELSPEGEPØLSE 115 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:98,ean:'7340011404415',name:'COOP HVIDLØGS SPEGEPØLSE 115 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:99,ean:'5704080955872',name:'KARTOFFELSPEGEPØLSE 125 G',koli:10,facings:1},
+  {fag:3,hylde:2,notch:33,pos:100,ean:'5704080960272',name:'3-STJERNET OKSESPEGEPØLSE 80 G',koli:14,facings:1},
+  {fag:3,hylde:2,notch:33,pos:101,ean:'5704080955841',name:'3 STJERNET KØDPØLSE 125 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:102,ean:'57067698',name:'JÆGERPØLSE 9% FEDT 3 STJERNET 110 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:103,ean:'5707196213379',name:'RULLEPØLSE (KAM) DGS 70 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:104,ean:'5707196155433',name:'HAMBURGERRYG DGS 80 G',koli:12,facings:1},
+  {fag:3,hylde:2,notch:33,pos:105,ean:'5707196205213',name:'VEGGIE PÅLÆG M PEBER DEN GR SLAGTER 80G',koli:6,facings:1},
+  {fag:3,hylde:3,notch:25,pos:106,ean:'5704080955919',name:'3-STJERNET SALAMI I SKIVER 200 G',koli:12,facings:1},
+  {fag:3,hylde:3,notch:25,pos:107,ean:'5703986061120',name:'ØKO SPEGEPØLSE KLASSISK HØJER PØL 200G',koli:6,facings:1},
+  {fag:3,hylde:3,notch:25,pos:108,ean:'5703986061519',name:'OKSE SPEGEPØLSE HØJER PØLSER 200 G',koli:6,facings:1},
+  {fag:3,hylde:3,notch:25,pos:109,ean:'5756111100249',name:'FRANSK HVIDLØGSSPEGEPØLSE 300 G',koli:8,facings:1},
+  {fag:3,hylde:3,notch:25,pos:110,ean:'5756111100225',name:'SØNDERJYSK SPEGEPØLSE 300 G',koli:8,facings:1},
+  {fag:3,hylde:3,notch:25,pos:111,ean:'5703986065050',name:'KARTOFFEL SPEGEPØLSE HØJER PØLSER 300 G',koli:10,facings:1},
+  {fag:3,hylde:3,notch:25,pos:112,ean:'5704000469083',name:'STRYHNS SYLTE 175 G',koli:8,facings:1},
+  {fag:3,hylde:3,notch:25,pos:113,ean:'5704000519252',name:'STRYHNS JULESYLTE 300 G',koli:9,facings:1},
+  {fag:3,hylde:4,notch:17,pos:114,ean:'5715569980407',name:'COOP TYNDSKÅRET KYLLING 80 G',koli:12,facings:1},
+  {fag:3,hylde:4,notch:17,pos:115,ean:'7340011426349',name:'COOP KYLLINGEBRYST STEGT 90 G',koli:10,facings:1},
+  {fag:3,hylde:4,notch:17,pos:116,ean:'5715569980384',name:'COOP TYNDSKÅRET SKINKE 80 G',koli:8,facings:1},
+  {fag:3,hylde:4,notch:17,pos:117,ean:'7340011426332',name:'COOP PEBERSKINKE 100 G',koli:10,facings:1},
+  {fag:3,hylde:4,notch:17,pos:118,ean:'7340011426363',name:'COOP RULLEPØLSE LAV FEDT 90 G',koli:8,facings:1},
+  {fag:3,hylde:4,notch:17,pos:119,ean:'5707196354140',name:'ØKO FRILAND HAMBURGERRYG 70 G',koli:8,facings:1},
+  {fag:3,hylde:4,notch:17,pos:120,ean:'5707196354171',name:'ØKO FRILAND RULLEPØLSE 70 G',koli:8,facings:1},
+  {fag:3,hylde:4,notch:17,pos:121,ean:'5707196354249',name:'ØKO FRILAND SPEGEPØLSE 70 G',koli:8,facings:1},
+  {fag:3,hylde:4,notch:17,pos:122,ean:'5708123010009',name:'GL.DAGS SPEGEPØLSE LEIF HENRIKSEN 400 G',koli:12,facings:1},
+  {fag:3,hylde:5,notch:9,pos:123,ean:'7340011434085',name:'COOP SALTKØD SKIVER 80 G',koli:10,facings:1},
+  {fag:3,hylde:5,notch:9,pos:124,ean:'7340011434092',name:'COOP ROASTBEEF SKIVER 70 G',koli:10,facings:1},
+  {fag:3,hylde:5,notch:9,pos:125,ean:'5715569980360',name:'COOP KAMSTEG 100 G',koli:10,facings:1},
+  {fag:3,hylde:5,notch:9,pos:126,ean:'5715569982883',name:'COOP RØGET FILET 100 G',koli:10,facings:1},
+  {fag:3,hylde:5,notch:9,pos:127,ean:'7340191176447',name:'COOP HAMBURGERRYG 100 G',koli:12,facings:1},
+  {fag:3,hylde:5,notch:9,pos:128,ean:'7340191176430',name:'COOP RULLEPØLSE 100 G',koli:12,facings:1},
+  {fag:3,hylde:5,notch:9,pos:129,ean:'7340011403012',name:'COOP FRIKADELLEPØLSE SKIVER 120 G',koli:12,facings:1},
+  {fag:3,hylde:6,notch:0,pos:130,ean:'7340011322306',name:'XTRA KOGT SKINKE SKIVER 150 G',koli:12,facings:1},
+  {fag:3,hylde:6,notch:0,pos:131,ean:'7340011477259',name:'XTRA HAMBURGERRYG 140 G',koli:12,facings:1},
+  {fag:3,hylde:6,notch:0,pos:132,ean:'7340011477242',name:'XTRA RULLEPØLSE 140 G',koli:12,facings:1},
+  {fag:3,hylde:6,notch:0,pos:133,ean:'7340011477235',name:'XTRA KYLLINGEBRYST 100 G',koli:12,facings:1},
+  {fag:3,hylde:6,notch:0,pos:134,ean:'5907547723575',name:'TICAN KØDPØLSE 100 G',koli:12,facings:1},
+  {fag:4,hylde:1,notch:42,pos:135,ean:'5709760089595',name:'ØKO BEEF STICK 20 G',koli:30,facings:1},
+  {fag:4,hylde:1,notch:42,pos:136,ean:'5704080959719',name:'STJERNEHAPS MINI SALAMI 4 X 10 G',koli:30,facings:1},
+  {fag:4,hylde:1,notch:42,pos:137,ean:'5709760003188',name:'ØKO HANEGAL KYLLINGE WIENER PØLSER 250 G',koli:5,facings:1},
+  {fag:4,hylde:1,notch:42,pos:138,ean:'5760725234269',name:'ROSE KYLLINGESTRIMLER STEGT 150 G',koli:10,facings:1},
+  {fag:4,hylde:1,notch:42,pos:139,ean:'5760725234450',name:'ROSE INDERFILET M/BBQ STEGT 150 G',koli:10,facings:1},
+  {fag:4,hylde:1,notch:42,pos:140,ean:'5707196309232',name:'DGS KALKUNBACON 100 G',koli:8,facings:1},
+  {fag:4,hylde:1,notch:42,pos:141,ean:'5707196242485',name:'TULIP BACON I SKIVER 125G GAS',koli:18,facings:1},
+  {fag:4,hylde:1,notch:42,pos:142,ean:'5715569978541',name:'ØKO IRMA TØRSALTET BACON I SKIVER 100 G',koli:12,facings:1},
+  {fag:4,hylde:1,notch:42,pos:143,ean:'5707196273106',name:'TULIP STEGT BACON I SKIVER 50 G',koli:8,facings:1},
+  {fag:4,hylde:2,notch:33,pos:144,ean:'5907547727603',name:'KYLLINGEMINIPØLSER ZAKLADY 300 G',koli:8,facings:1},
+  {fag:4,hylde:2,notch:33,pos:145,ean:'5907547721816',name:'PØLSEHORNSPØLSER NOVE 240 G',koli:12,facings:1},
+  {fag:4,hylde:2,notch:33,pos:146,ean:'5703986022404',name:'HØJER SDJ KÅLPØLSER 320 G 4 STK',koli:8,facings:1},
+  {fag:4,hylde:2,notch:33,pos:147,ean:'7340011490784',name:'COOP KYLLINGETERN 150 G',koli:10,facings:1},
+  {fag:4,hylde:2,notch:33,pos:148,ean:'7340011344476',name:'XTRA BACON TERN 200 G',koli:12,facings:1},
+  {fag:4,hylde:2,notch:33,pos:149,ean:'5707196201857',name:'TULIP BACON TERN 300 G',koli:14,facings:1},
+  {fag:4,hylde:3,notch:25,pos:150,ean:'5707196310931',name:'STEFF HOULBERG SYLTE 8X300 G',koli:8,facings:1},
+  {fag:4,hylde:3,notch:25,pos:151,ean:'5701293650204',name:'BLODPØLSE STEFF HOULBERG 400 G',koli:10,facings:1},
+  {fag:4,hylde:3,notch:25,pos:152,ean:'7340011344483',name:'XTRA SKINKE STRIMLER 200 G',koli:12,facings:1},
+  {fag:4,hylde:3,notch:25,pos:153,ean:'7340191124967',name:'XTRA BACON SKIVER 140 G',koli:24,facings:1},
+  {fag:4,hylde:3,notch:25,pos:154,ean:'5707196172713',name:'BACON I SKIVER TULIP 3X125 G',koli:9,facings:1},
+  {fag:4,hylde:4,notch:17,pos:155,ean:'5707196181012',name:'SKINKESTRIMLER STEFF 175 G',koli:12,facings:1},
+  {fag:4,hylde:4,notch:17,pos:156,ean:'7340191147362',name:'COOP SKINKE I TERN 150 G',koli:10,facings:1},
+  {fag:4,hylde:4,notch:17,pos:157,ean:'7340011344490',name:'XTRA COCKTAIL PØLSER 200 G',koli:12,facings:1},
+  {fag:4,hylde:4,notch:17,pos:158,ean:'5707196181043',name:'COCKTAILPØLSER STEFF 200 G',koli:12,facings:1},
+  {fag:4,hylde:4,notch:17,pos:159,ean:'7340191147379',name:'COOP PEPPERONI SKIVER 150 G',koli:10,facings:1},
+  {fag:4,hylde:5,notch:9,pos:160,ean:'5707196204339',name:'STEFF HOULBERG BRUNCH PØLSER 300 G',koli:12,facings:1},
+  {fag:4,hylde:5,notch:9,pos:161,ean:'5707196133561',name:'STEFF HOULBERG HOTDOG PØLSER 375 G',koli:12,facings:1},
+  {fag:4,hylde:5,notch:9,pos:162,ean:'5707196133592',name:'STEFF HOULBERG BAYERSKE PØLSER 375 G',koli:12,facings:1},
+  {fag:4,hylde:5,notch:9,pos:163,ean:'5707196155273',name:'STEFF HOULBERG GRILLPØLSER 400 G',koli:10,facings:1},
+  {fag:4,hylde:5,notch:9,pos:164,ean:'5707196155464',name:'STEFF HOULBERG GRILLPØLSER MED OST 350 G',koli:10,facings:1},
+  {fag:4,hylde:6,notch:0,pos:165,ean:'7340011382485',name:'XTRA PARTY PØLSER 10 STK 500 G',koli:10,facings:1},
+  {fag:4,hylde:6,notch:0,pos:166,ean:'7340191174429',name:'COOP HOTDOG PØLSER 300 G',koli:10,facings:1},
+  {fag:4,hylde:6,notch:0,pos:167,ean:'7340191174412',name:'COOP GRILLPØLSER 375 G',koli:10,facings:1},
+  {fag:4,hylde:6,notch:0,pos:168,ean:'7340191174399',name:'COOP FRANKFURTER MED OST 360 G',koli:10,facings:1},
+  {fag:4,hylde:6,notch:0,pos:169,ean:'7340191174405',name:'COOP FRANKFURTER 360 G',koli:10,facings:1},
+  {fag:5,hylde:1,notch:42,pos:170,ean:'5715348143375',name:'COOP LASAGNEPLADER 250 G',koli:8,facings:1},
+  {fag:5,hylde:1,notch:42,pos:171,ean:'8017268125484',name:'CAPPELLETTI M PROSCIUTTO CRUDO 500 G',koli:8,facings:1},
+  {fag:5,hylde:1,notch:42,pos:172,ean:'8017268125705',name:'BREMA TORTELLONI M/RICOTTA/SPINAT 500 G',koli:8,facings:1},
+  {fag:5,hylde:1,notch:42,pos:173,ean:'8017268125132',name:'BREMA RAVIOLI M KARL JOHN SVAMPE 250 G',koli:12,facings:2},
+  {fag:5,hylde:1,notch:42,pos:174,ean:'4015236000683',name:'ORG. SCHWARZWÄLDER SKINKE 100 G',koli:12,facings:1},
+  {fag:5,hylde:2,notch:33,pos:175,ean:'5715348142903',name:'COOP FETTUCINE 500G',koli:6,facings:2},
+  {fag:5,hylde:2,notch:33,pos:176,ean:'5700383518981',name:'COOP FETTUCCINE SPINAT 250 G',koli:10,facings:1},
+  {fag:5,hylde:2,notch:33,pos:177,ean:'5715348099412',name:'ØKO ÄNGLAMARK FETTUCINE FULDKORN 250 G',koli:6,facings:1},
+  {fag:5,hylde:2,notch:33,pos:178,ean:'5715348142927',name:'ØKO ÄNGLAMARK SPAGHETTI 250 G',koli:6,facings:1},
+  {fag:5,hylde:2,notch:33,pos:179,ean:'5704080958668',name:'AALBÆK LANDSPEGEPØLSE 200 G',koli:12,facings:1},
+  {fag:5,hylde:2,notch:33,pos:180,ean:'5704080955452',name:'AALBÆK CHORIZO MED RØGET PAPRIKA 200 G',koli:10,facings:1},
+  {fag:5,hylde:3,notch:25,pos:181,ean:'5701293658712',name:'STEFF HOULBERG RIS A LA MANDE 500 G',koli:10,facings:1},
+  {fag:5,hylde:3,notch:25,pos:182,ean:'5706041007590',name:'TOFU MED CITRONGRÆS/CHILI',koli:8,facings:1},
+  {fag:5,hylde:3,notch:25,pos:183,ean:'7300156582089',name:'ØKO ÄNGLAMARK TOFU NATUREL 250 G',koli:6,facings:1},
+  {fag:5,hylde:3,notch:25,pos:184,ean:'5715051000828',name:'ØKO SVAMPEDELLEN 220 G 4 STK',koli:5,facings:1},
+  {fag:5,hylde:3,notch:25,pos:185,ean:'5744007620001',name:'MINI FRIKADELLER 200 G',koli:5,facings:1},
+  {fag:5,hylde:3,notch:25,pos:186,ean:'5744007660007',name:'MIDDAGSFRIKADELLER 250 G',koli:5,facings:1},
+  {fag:5,hylde:3,notch:25,pos:187,ean:'5744007660014',name:'KYLLING KALKUN FRIKADELLER 200 G',koli:5,facings:1},
+  {fag:5,hylde:3,notch:25,pos:188,ean:'5700002272461',name:'KLASSISKE KØDBOLLER 500 G',koli:4,facings:1},
+  {fag:5,hylde:3,notch:25,pos:189,ean:'5700002272485',name:'KYLLING-KALKUN KØDBOLLER 500 G',koli:4,facings:1},
+  {fag:5,hylde:4,notch:17,pos:190,ean:'7300156586094',name:'XTRA KARTOFFELSALAT 1 KG',koli:6,facings:1},
+  {fag:5,hylde:4,notch:17,pos:191,ean:'5701295293973',name:'GRAASTEN KARTOFFELSALAT PURLØG DILD 800G',koli:6,facings:1},
+  {fag:5,hylde:4,notch:17,pos:192,ean:'5705900000055',name:'JENSENS KØKKEN BEARNAISE SAUCE 350 ML',koli:8,facings:1},
+  {fag:5,hylde:4,notch:17,pos:193,ean:'5704000517616',name:'JENSENS KØKKEN BACON BEARNAISE 350 ML',koli:8,facings:1},
+  {fag:5,hylde:4,notch:17,pos:194,ean:'5704000498649',name:'JENSENS KØKKEN FLÆSKESTEGSSAUCE 350 ML',koli:8,facings:1},
+  {fag:5,hylde:4,notch:17,pos:195,ean:'5705900004206',name:'JENSENS KØKKEN ANDESAUCE 350 ML',koli:8,facings:1},
+  {fag:5,hylde:4,notch:17,pos:196,ean:'5704000460929',name:'JENSENS KØKKEN FAVORIT SAUCE 250 ML',koli:8,facings:1},
+  {fag:5,hylde:4,notch:17,pos:197,ean:'5701018044547',name:'K-SALAT BEARNAISE SAUCE 325 G',koli:8,facings:2},
+  {fag:5,hylde:5,notch:9,pos:198,ean:'5745000172931',name:'JENSENS PULLED PORK 500 G',koli:5,facings:2},
+  {fag:5,hylde:5,notch:9,pos:199,ean:'5740036001323',name:'JENSENS SPARERIBS BBQ 500 G',koli:6,facings:1},
+  {fag:5,hylde:5,notch:9,pos:200,ean:'5705900033398',name:'JENSEN SPARERIBS 1250 G',koli:4,facings:1},
+  {fag:5,hylde:5,notch:9,pos:201,ean:'5707490011077',name:'TIMS BRUNKAGEDEJ 300 G',koli:12,facings:1},
+  {fag:6,hylde:1,notch:42,pos:202,ean:'5704080957036',name:'ØKO AALBÆK DELIKATE SKIVER CHORIZO 60 G',koli:10,facings:1},
+  {fag:6,hylde:1,notch:42,pos:203,ean:'8008410582972',name:'PROSCIUTTO CRUDO 50 G',koli:20,facings:1},
+  {fag:6,hylde:1,notch:42,pos:204,ean:'8008410596948',name:'SALAME DI MILANO 60 G',koli:20,facings:1},
+  {fag:6,hylde:1,notch:42,pos:205,ean:'8008410697959',name:'PROSCIUTTO COTTO 70 G',koli:20,facings:1},
+  {fag:6,hylde:1,notch:42,pos:206,ean:'80551065',name:'MORTADELLA BOLOGNA 70 G',koli:20,facings:1},
+  {fag:6,hylde:1,notch:42,pos:207,ean:'8008410564527',name:'SALAME VENTRICINA 70 G',koli:20,facings:1},
+  {fag:6,hylde:1,notch:42,pos:208,ean:'8008410748743',name:'ANTIPASTO CITTERIO 125 G',koli:12,facings:1},
+  {fag:6,hylde:2,notch:33,pos:209,ean:'5704080956770',name:'AALBÆK LANDSBY SPEGPØLSE AALBÆK 60 G',koli:10,facings:1},
+  {fag:6,hylde:2,notch:33,pos:210,ean:'5704080956787',name:'AALBÆK FENNIKEL SPEGEPØLSE 60 G',koli:10,facings:1},
+  {fag:6,hylde:2,notch:33,pos:211,ean:'8411030051566',name:'CASA CZAJA CHORIZO 80 G',koli:14,facings:1},
+  {fag:6,hylde:2,notch:33,pos:212,ean:'8411030051559',name:'CASA CZAJA SERRANO 60 G',koli:14,facings:1},
+  {fag:6,hylde:2,notch:33,pos:213,ean:'8411030052181',name:'CASA CZAJA LOMO 50 G',koli:14,facings:1},
+  {fag:6,hylde:2,notch:33,pos:214,ean:'8008410580862',name:'BRESAOLA 70 G',koli:12,facings:1},
+  {fag:6,hylde:2,notch:33,pos:215,ean:'8008410555426',name:'PROSCIUTTO DI PARMA CITTERIO 70 G',koli:10,facings:1},
+  {fag:6,hylde:3,notch:25,pos:216,ean:'8010817129414',name:'SALSICCIA KLASSISK 200 G',koli:6,facings:1},
+  {fag:6,hylde:3,notch:25,pos:217,ean:'5410921016502',name:'HUMMUS NATURAL 200 G',koli:8,facings:2},
+  {fag:6,hylde:3,notch:25,pos:218,ean:'5715569971184',name:'IRMA HUMMUS 200 G',koli:8,facings:1},
+  {fag:6,hylde:3,notch:25,pos:219,ean:'5715569971368',name:'ØKO IRMA HUMMUS 175 G',koli:8,facings:1},
+  {fag:6,hylde:3,notch:25,pos:220,ean:'5410921016519',name:'HUMMUS CHILI 175 G',koli:8,facings:1},
+  {fag:6,hylde:3,notch:25,pos:221,ean:'5715569971344',name:'IRMA HUMMUS CHILI 200 G',koli:8,facings:1},
+  {fag:6,hylde:3,notch:25,pos:222,ean:'5715569971177',name:'IRMA GRØN PESTO 140 G',koli:8,facings:1},
+  {fag:6,hylde:3,notch:25,pos:223,ean:'5715569971221',name:'IRMA AIOLI 200 G',koli:8,facings:1},
+  {fag:6,hylde:4,notch:17,pos:224,ean:'5715569975670',name:'COOP FLØDEKARTOFLER 600 G',koli:10,facings:1},
+  {fag:6,hylde:4,notch:17,pos:225,ean:'5715569975663',name:'COOP FLØDEKARTOFLER MED RØD PEBER 600 G',koli:10,facings:1},
+  {fag:6,hylde:4,notch:17,pos:226,ean:'5715348158485',name:'IRMA SURDEJSPIZZABUND 240 G',koli:12,facings:1},
+  {fag:6,hylde:4,notch:17,pos:227,ean:'5715348158508',name:'IRMA FULDKORN SURDEJSPIZZABUND 240 G',koli:12,facings:1},
+  {fag:6,hylde:4,notch:17,pos:228,ean:'5715348158461',name:'IRMA SURDEJSPIZZABUND 480 G 2 STK',koli:8,facings:1},
+  {fag:6,hylde:5,notch:9,pos:229,ean:'5715348124794',name:'COOP MADPANDEKAGER 480 G',koli:8,facings:1},
+  {fag:6,hylde:5,notch:9,pos:230,ean:'5715348124817',name:'COOP DESSERTPANDEKAGER 480 G',koli:8,facings:1},
+  {fag:6,hylde:5,notch:9,pos:231,ean:'5715348124831',name:'COOP BRUNCH PANDEKAGER 240 G',koli:5,facings:1},
+  {fag:6,hylde:5,notch:9,pos:232,ean:'7340191175433',name:'COOP CROISSANTDEJ 350 G',koli:8,facings:1},
+  {fag:6,hylde:5,notch:9,pos:233,ean:'5710231003514',name:'FILODEJ 300 G',koli:8,facings:1},
+  {fag:6,hylde:5,notch:9,pos:234,ean:'5709153099170',name:'COOP BUTTERDEJ 275 G',koli:8,facings:1},
+  {fag:6,hylde:6,notch:0,pos:235,ean:'5410146401435',name:'DANNEROLLES CROISSANT 240 G 6 STK',koli:6,facings:1},
+  {fag:6,hylde:6,notch:0,pos:236,ean:'5715348076130',name:'COOP PØLSEHORNSDEJ 325 G',koli:8,facings:1},
+  {fag:6,hylde:6,notch:0,pos:237,ean:'5709153099125',name:'COOP PIZZADEJ 400 G',koli:8,facings:1},
+  {fag:6,hylde:6,notch:0,pos:238,ean:'7340191176829',name:'COOP FULDKORNSPIZZADEJ 400 G',koli:8,facings:1},
+  {fag:6,hylde:6,notch:0,pos:239,ean:'5709153099156',name:'COOP TÆRTEDEJ 275 G',koli:8,facings:1},
+  {fag:6,hylde:6,notch:0,pos:240,ean:'5709153099163',name:'COOP FULDKORNSTÆRTEDEJ 275 G',koli:8,facings:1},
+  {fag:7,hylde:1,notch:42,pos:241,ean:'3176580020169',name:'BRIE LAITIÉRE 200G',koli:16,facings:1},
+  {fag:7,hylde:1,notch:42,pos:242,ean:'3228020232028',name:'PRÉSIDENT SPIDSBRIE 200 G',koli:6,facings:1},
+  {fag:7,hylde:1,notch:42,pos:243,ean:'5709281008891',name:'PRÉS BRIE NATUR 125',koli:12,facings:1},
+  {fag:7,hylde:1,notch:42,pos:244,ean:'5711953070266',name:'CASTELLO HVID 200 G',koli:6,facings:1},
+  {fag:7,hylde:1,notch:42,pos:245,ean:'5740200001012',name:'CASTELLO BLÅ 150 G',koli:10,facings:1},
+  {fag:7,hylde:1,notch:42,pos:246,ean:'5703985047354',name:'MAMMEN DANABLU 50+/30% 150G',koli:16,facings:1},
+  {fag:7,hylde:1,notch:42,pos:247,ean:'5709464020351',name:'ØKO THISE DANABLUE 60+/36% 150 G',koli:6,facings:1},
+  {fag:7,hylde:2,notch:33,pos:248,ean:'7340011493495',name:'COOP EMMENTALER 400 G',koli:16,facings:1},
+  {fag:7,hylde:2,notch:33,pos:249,ean:'8711842132669',name:'PRIMA DONNA RØD 220G',koli:8,facings:1},
+  {fag:7,hylde:2,notch:33,pos:250,ean:'7340191117990',name:'COOP RØD CHEDDAR BLOK 250 G',koli:8,facings:1},
+  {fag:7,hylde:2,notch:33,pos:251,ean:'3073780872331',name:'PORT SALUT 150G',koli:10,facings:1},
+  {fag:7,hylde:2,notch:33,pos:252,ean:'5701975801306',name:'ØKO THISE VESTERHAVOST 32% MIN 225 G',koli:6,facings:1},
+  {fag:7,hylde:2,notch:33,pos:253,ean:'5711953048739',name:'CASTELLO AGED HAVARTI 200 G',koli:12,facings:2},
+  {fag:7,hylde:2,notch:33,pos:254,ean:'5715569978190',name:'COOP GOUDA CHILI 200 G',koli:12,facings:1},
+  {fag:7,hylde:2,notch:33,pos:255,ean:'5703855101285',name:'GOUDA CREMET 200 G',koli:12,facings:1},
+  {fag:7,hylde:3,notch:25,pos:256,ean:'5711953171628',name:'PUCK HVID OST 200 G',koli:20,facings:2},
+  {fag:7,hylde:3,notch:25,pos:257,ean:'7340191119918',name:'ØKO 365 SALATTERN 365/150 G',koli:12,facings:1},
+  {fag:7,hylde:3,notch:25,pos:258,ean:'7340191155824',name:'COOP SALATTERN 325/530 G',koli:6,facings:1},
+  {fag:7,hylde:3,notch:25,pos:259,ean:'3523230038898',name:'GEDERULLE SOIGNON 180 G',koli:6,facings:1},
+  {fag:7,hylde:3,notch:25,pos:260,ean:'8018731001274',name:'DELIZIA BURRATA 260/125 G',koli:8,facings:1},
+  {fag:7,hylde:3,notch:25,pos:261,ean:'7340191179851',name:'COOP TOASTSKIVER 200 G',koli:12,facings:1},
+  {fag:7,hylde:4,notch:17,pos:262,ean:'8001868011568',name:'GRAN CASTELLI REVET',koli:12,facings:2},
+  {fag:7,hylde:4,notch:17,pos:263,ean:'7340191120136',name:'COOP GRANA PADANO 12 MDR 150 G',koli:16,facings:2},
+  {fag:7,hylde:4,notch:17,pos:264,ean:'5715348002528',name:'COOP PARMIGIANO REGGIANO 24 M 200 G',koli:7,facings:1},
+  {fag:7,hylde:4,notch:17,pos:265,ean:'7340191148284',name:'COOP MOZZARELLA KUGLE 210/125 G',koli:20,facings:1},
+  {fag:7,hylde:4,notch:17,pos:266,ean:'7300156582096',name:'ØKO ÄNGLAMARK MOZZARELLA 240/125 G',koli:12,facings:1},
+  {fag:7,hylde:5,notch:9,pos:267,ean:'5711953152405',name:'CHEASY REVET OST 13% 150 G',koli:14,facings:1},
+  {fag:7,hylde:5,notch:9,pos:268,ean:'5760466817325',name:'KK REVET MOZZARELLA 400 G',koli:10,facings:2},
+  {fag:7,hylde:5,notch:9,pos:269,ean:'7340191149762',name:'COOP REVET CHEDDAR RØD 150 G',koli:14,facings:2},
+  {fag:7,hylde:5,notch:9,pos:270,ean:'5703855162231',name:'PIZZATOPPING 200 G',koli:12,facings:2},
+  {fag:7,hylde:6,notch:0,pos:271,ean:'5701975804659',name:'ØKO THISE REVET OST 45+ 140 G',koli:14,facings:2},
+  {fag:7,hylde:6,notch:0,pos:272,ean:'7340191167995',name:'COOP REVET MOZZARELLA 200G',koli:14,facings:4},
+  {fag:7,hylde:6,notch:0,pos:273,ean:'7340191106321',name:'COOP GOUDA WEDGE 450 G',koli:12,facings:1},
+  {fag:8,hylde:1,notch:42,pos:274,ean:'8021398256802',name:'GORGONZOLA DOLCE 200 G',koli:8,facings:1},
+  {fag:8,hylde:1,notch:42,pos:275,ean:'4000339697908',name:'PHILADELPHIA NATUREL 200 G',koli:10,facings:1},
+  {fag:8,hylde:1,notch:42,pos:276,ean:'5700419083360',name:'PHILADELPHIA NATUREL LIGHT 200 G',koli:10,facings:1},
+  {fag:8,hylde:1,notch:42,pos:277,ean:'7622400969034',name:'PHILADELPHIA HVIDLØG/URTER 22% 200 G',koli:10,facings:1},
+  {fag:8,hylde:1,notch:42,pos:278,ean:'5760466740999',name:'BUKO FLØDE NATUREL 200 G',koli:10,facings:1},
+  {fag:8,hylde:1,notch:42,pos:279,ean:'5760466101240',name:'BUKO GUL PIKANT 200 G',koli:10,facings:1},
+  {fag:8,hylde:1,notch:42,pos:280,ean:'5711953047596',name:'ØKO BUKO PIKANT 150 G',koli:12,facings:1},
+  {fag:8,hylde:1,notch:42,pos:281,ean:'5711953140334',name:'BUKO SMELTEOST REJER 200 G',koli:10,facings:1},
+  {fag:8,hylde:1,notch:42,pos:282,ean:'5711953140396',name:'BUKO SMELTEOST SKINKE 200 G',koli:10,facings:1},
+  {fag:8,hylde:1,notch:42,pos:283,ean:'5760466745505',name:'BUKO GARLI 125 G',koli:8,facings:1},
+  {fag:8,hylde:2,notch:33,pos:284,ean:'5701975803041',name:'ØKO THISE ML 30+ SKIVEOST 200 G',koli:12,facings:1},
+  {fag:8,hylde:2,notch:33,pos:285,ean:'5701975802235',name:'ØKO THISE LAGRET 45+ SKIVEOST 180 G',koli:12,facings:1},
+  {fag:8,hylde:2,notch:33,pos:286,ean:'5701975801467',name:'ØKO THISE FAMILIEOST MILD 45+ SK 200G',koli:12,facings:2},
+  {fag:8,hylde:2,notch:33,pos:287,ean:'5701975801160',name:'ØKO THISE ML 50+ SKIVEOST 200 G',koli:12,facings:1},
+  {fag:8,hylde:2,notch:33,pos:288,ean:'5760466956826',name:'CHEASY SK ML 13% 200 G',koli:12,facings:1},
+  {fag:8,hylde:2,notch:33,pos:289,ean:'7340191173163',name:'COOP GOUDA SKIVER 200G',koli:9,facings:1},
+  {fag:8,hylde:2,notch:33,pos:290,ean:'7340191164246',name:'COOP CHEDDAR I SKIVER 100 G',koli:15,facings:1},
+  {fag:8,hylde:2,notch:33,pos:291,ean:'3073781195323',name:'DEN LEENDE KO NATURAL 8P 133 G',koli:16,facings:1},
+  {fag:8,hylde:3,notch:25,pos:292,ean:'5700383198305',name:'COOP MILD +30 DANBO SKIVEOST 16%',koli:9,facings:1},
+  {fag:8,hylde:3,notch:25,pos:293,ean:'5700382973644',name:'COOP ML 45+ DANBO SKIVEOST 25%',koli:9,facings:2},
+  {fag:8,hylde:3,notch:25,pos:294,ean:'5715569967897',name:'COOP DANBO XL SKIVEOST 200 G',koli:9,facings:1},
+  {fag:8,hylde:3,notch:25,pos:295,ean:'5711953084676',name:'KLOVBORG SKIVER 45+ ML 240 G',koli:9,facings:2},
+  {fag:8,hylde:3,notch:25,pos:296,ean:'5711953034053',name:'RIBERHUS 45+ MELLEMLAGRET SKIVER 240 G',koli:9,facings:2},
+  {fag:8,hylde:3,notch:25,pos:297,ean:'5760466985437',name:'RIBERHUS 45+ XL SKIVER 200 G',koli:9,facings:1},
+  {fag:8,hylde:5,notch:9,pos:298,ean:'5701975804765',name:'ØKO THISE DANBO 30+ ML MIN 462 G',koli:6,facings:2},
+  {fag:8,hylde:5,notch:9,pos:299,ean:'5701975804789',name:'ØKO THISE DANBO 45+ ML 468 G',koli:6,facings:2},
+  {fag:8,hylde:5,notch:9,pos:300,ean:'5701975804741',name:'ØKO THISE MILD GOUDA 28% MIN 432 G',koli:6,facings:2},
+  {fag:8,hylde:5,notch:9,pos:301,ean:'7340011455554',name:'COOP DANBO ML 25% 45+ 650 G',koli:12,facings:3},
+  {fag:8,hylde:5,notch:9,pos:302,ean:'7340011455561',name:'COOP DANBO ML KOMMEN 25% 45+ BGB 650 G',koli:12,facings:2},
+  {fag:8,hylde:5,notch:9,pos:303,ean:'5715569954408',name:'COOP EKSTRA LAGRET DANBO 45+ MIN 500 G',koli:9,facings:2},
+  {fag:8,hylde:5,notch:9,pos:304,ean:'7340011455585',name:'COOP GAMLE OLE EKSTRA LAGRET 610 G',koli:12,facings:2},
+  {fag:8,hylde:6,notch:0,pos:305,ean:'5711953164668',name:'CHEASY SKÆREOST MILD MIN 495 G',koli:10,facings:1},
+  {fag:8,hylde:6,notch:0,pos:306,ean:'5711953135033',name:'KLOVBORG ML 650 G',koli:12,facings:3},
+  {fag:8,hylde:6,notch:0,pos:307,ean:'5711953161261',name:'RIBERHUS DANBO MELLEMLAGRET 45+ 468 G',koli:12,facings:2},
+  {fag:8,hylde:6,notch:0,pos:308,ean:'5703985045015',name:'MAMMEN GULD ML 45+ 585 G',koli:12,facings:2},
+  {fag:8,hylde:6,notch:0,pos:309,ean:'3073781189896',name:'CHEEZ DIPPERS NATURAL 5P 175 G',koli:8,facings:1},
+  {fag:8,hylde:6,notch:0,pos:310,ean:'5760466748902',name:'LILLEBROR OSTEHAPS 18X18 G',koli:12,facings:1},
+  {fag:8,hylde:6,notch:0,pos:311,ean:'5711953161698',name:'COOP FLØDEHAVARTI 400 G',koli:12,facings:1},
+];
+
+// Build EAN lookup map
+const eanMap = {};
+products.forEach(p => { eanMap[p.ean] = p; });
+
+// ============ STATE ============
+let activeFilter = 'all';
+let selectedEAN = null;
+let doneProducts = new Set();
+let scannerActive = false;
+let codeReader = null;
+
+// ============ STORAGE ============
+async function loadProgress() {
+  try {
+    const res = await window.storage.get('planogram-done');
+    if (res && res.value) {
+      doneProducts = new Set(JSON.parse(res.value));
+    }
+  } catch (e) {
+    // No data yet, that's fine
+  }
+  updateProgress();
+  updateAllCards();
+}
+
+async function saveProgress() {
+  try {
+    await window.storage.set('planogram-done', JSON.stringify([...doneProducts]));
+  } catch (e) { console.error(e); }
+}
+
+async function loadTheme() {
+  try {
+    const res = await window.storage.get('planogram-theme');
+    if (res && res.value) {
+      setTheme(res.value);
+    } else {
+      // Auto-detect based on time
+      const hour = new Date().getHours();
+      setTheme(hour >= 7 && hour < 19 ? 'light' : 'dark');
+    }
+  } catch (e) {
+    setTheme('dark');
+  }
+}
+
+async function saveTheme(theme) {
+  try { await window.storage.set('planogram-theme', theme); } catch (e) {}
+}
+
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+  const cur = document.body.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  saveTheme(next);
+}
+
+// ============ BUILD UI ============
+function buildFagNav() {
+  const nav = document.getElementById('fagNav');
+  nav.innerHTML = '';
+  for (let f = 1; f <= 8; f++) {
+    const fagProds = products.filter(p => p.fag === f);
+    const done = fagProds.filter(p => doneProducts.has(p.ean)).length;
+    const pct = Math.round((done / fagProds.length) * 100);
+
+    const btn = document.createElement('div');
+    btn.className = 'fag-nav-btn';
+    btn.id = `nav-fag-${f}`;
+    btn.innerHTML = `
+      <div class="fag-nav-info">
+        <div class="fag-label">${fagLabels[f].title}</div>
+        <div class="fag-sublabel">${fagLabels[f].sub}</div>
+      </div>
+      <div class="fag-nav-progress">
+        <div class="mini-progress"><div class="mini-progress-fill" style="width:${pct}%"></div></div>
+        <div class="mini-progress-text">${done}/${fagProds.length}</div>
+      </div>
+    `;
+    btn.onclick = () => scrollToFag(f);
+    nav.appendChild(btn);
+  }
+}
+
+function buildContent() {
+  const content = document.getElementById('contentArea');
+  content.innerHTML = '';
+  for (let f = 1; f <= 8; f++) {
+    const fagProds = products.filter(p => p.fag === f);
+    content.appendChild(buildFagSection(f, fagProds));
+  }
+}
+
+function buildFagSection(fagNum, prods) {
+  const section = document.createElement('div');
+  section.className = 'fag-section';
+  section.id = `fag-section-${fagNum}`;
+  const newCount = prods.filter(p => newEANs.has(p.ean)).length;
+  const done = prods.filter(p => doneProducts.has(p.ean)).length;
+  const pct = Math.round((done / prods.length) * 100);
+  const newBadge = newCount > 0 ? `<span class="badge badge-success">${newCount} ny</span>` : '';
+
+  section.innerHTML = `
+    <div class="fag-header" onclick="toggleFag(${fagNum})">
+      <div class="fag-header-left">
+        <div class="fag-number">${fagNum}</div>
+        <div class="fag-title-block">
+          <div class="fag-title">${fagLabels[fagNum].title}</div>
+          <div class="fag-subtitle">${fagLabels[fagNum].sub}</div>
+        </div>
+      </div>
+      <div class="fag-meta">
+        ${newBadge}
+        <div class="fag-mini-progress"><div class="fag-mini-fill" id="fag-fill-${fagNum}" style="width:${pct}%"></div></div>
+        <span class="badge badge-accent" id="fag-count-${fagNum}">${done}/${prods.length}</span>
+      </div>
+    </div>
+    <div class="shelf-container" id="fag-body-${fagNum}">
+      ${buildShelves(prods)}
+    </div>
+  `;
+  return section;
+}
+
+function buildShelves(prods) {
+  const hyldeMap = {};
+  prods.forEach(p => {
+    if (!hyldeMap[p.hylde]) hyldeMap[p.hylde] = [];
+    hyldeMap[p.hylde].push(p);
+  });
+
+  const hyldeNames = {1:'Hylde 1 (øverst)', 2:'Hylde 2', 3:'Hylde 3', 4:'Hylde 4', 5:'Hylde 5', 6:'Hylde 6 (nederst)'};
+  let html = '';
+  Object.keys(hyldeMap).sort((a,b) => a-b).forEach(h => {
+    const ps = hyldeMap[h];
+    const notch = ps[0].notch;
+    html += `
+      <div class="shelf">
+        <div class="shelf-label">
+          ${hyldeNames[h]}
+          <span class="notch-tag">Notch ${notch}</span>
+        </div>
+        <div class="shelf-row">
+          ${ps.map(p => buildProductCard(p)).join('')}
+        </div>
+      </div>
+    `;
+  });
+  return html;
+}
+
+function buildProductCard(p) {
+  const isNew = newEANs.has(p.ean);
+  const isDone = doneProducts.has(p.ean);
+  const classes = ['product-card'];
+  if (isNew) classes.push('is-new');
+  if (isDone) classes.push('done');
+
+  return `
+    <div class="${classes.join(' ')}"
+         id="card-${p.ean}"
+         onclick="selectProduct('${p.ean}')">
+      <div class="product-pos">#${p.pos}</div>
+      <div class="product-name">${p.name}</div>
+      <div class="product-ean">${p.ean}</div>
+    </div>
+  `;
+}
+
+function updateAllCards() {
+  products.forEach(p => {
+    const card = document.getElementById(`card-${p.ean}`);
+    if (!card) return;
+    if (doneProducts.has(p.ean)) card.classList.add('done');
+    else card.classList.remove('done');
+  });
+  // Update fag counters
+  for (let f = 1; f <= 8; f++) {
+    const fagProds = products.filter(p => p.fag === f);
+    const done = fagProds.filter(p => doneProducts.has(p.ean)).length;
+    const pct = Math.round((done / fagProds.length) * 100);
+    const fill = document.getElementById(`fag-fill-${f}`);
+    const count = document.getElementById(`fag-count-${f}`);
+    if (fill) fill.style.width = pct + '%';
+    if (count) count.textContent = `${done}/${fagProds.length}`;
+  }
+  buildFagNav();
+}
+
+function updateProgress() {
+  const total = products.length;
+  const done = doneProducts.size;
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('progressCount').textContent = `${done} / ${total}`;
+  document.getElementById('progressPercent').textContent = `${pct}%`;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ============ FAG TOGGLE ============
+const collapsedFags = new Set();
+function toggleFag(f) {
+  const body = document.getElementById(`fag-body-${f}`);
+  if (collapsedFags.has(f)) {
+    body.style.display = '';
+    collapsedFags.delete(f);
+  } else {
+    body.style.display = 'none';
+    collapsedFags.add(f);
+  }
+}
+
+// ============ NAVIGATION ============
+function scrollToFag(f) {
+  document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
+  const nav = document.getElementById(`nav-fag-${f}`);
+  if (nav) nav.classList.add('active');
+  const section = document.getElementById(`fag-section-${f}`);
+  if (section) section.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+// ============ SELECT PRODUCT ============
+function selectProduct(ean) {
+  if (selectedEAN) {
+    const prev = document.getElementById(`card-${selectedEAN}`);
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedEAN = ean;
+  const card = document.getElementById(`card-${ean}`);
+  if (card) {
+    card.classList.add('selected');
+    card.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }
+
+  const p = eanMap[ean];
+  if (!p) return;
+
+  const panel = document.getElementById('detailPanel');
+  const content = document.getElementById('detailContent');
+  panel.classList.add('visible');
+
+  const isNew = newEANs.has(p.ean);
+  const isDone = doneProducts.has(p.ean);
+  const replacementNote = replacements[p.ean];
+
+  content.innerHTML = `
+    <div class="location-badge">
+      <div class="loc-main">Fag ${p.fag} · Hylde ${p.hylde}</div>
+      <div class="loc-sub">Position #${p.pos} · Notch ${p.notch}</div>
+    </div>
+    <div class="detail-row"><span class="label">Navn</span><span class="val" style="font-family:inherit;font-size:11px">${p.name}</span></div>
+    <div class="detail-row"><span class="label">EAN</span><span class="val">${p.ean}</span></div>
+    <div class="detail-row"><span class="label">Kolli</span><span class="val">${p.koli}</span></div>
+    <div class="detail-row"><span class="label">Facings</span><span class="val">${p.facings}</span></div>
+    ${isNew ? '<div style="margin-top:8px;padding:7px 11px;background:var(--success-soft);border:1px solid var(--success);border-radius:8px;font-size:11px;color:var(--success);text-align:center;font-weight:700">✦ NY vare i dette planogram</div>' : ''}
+    ${replacementNote ? `<div class="replacement-info"><strong>🔄 Info</strong>${replacementNote}</div>` : ''}
+    <button class="btn-mark-done ${isDone?'done':''}" onclick="toggleDone('${p.ean}')">
+      ${isDone ? '✓ Markeret færdig (fortryd)' : '✓ Markér som færdig'}
+    </button>
+  `;
+
+  document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
+  const nav = document.getElementById(`nav-fag-${p.fag}`);
+  if (nav) nav.classList.add('active');
+
+  closeSearch();
+  showToast(`📍 Fag ${p.fag} · Hylde ${p.hylde} · Pos #${p.pos}`, 'success');
+}
+
+// ============ TOGGLE DONE ============
+function toggleDone(ean) {
+  const card = document.getElementById(`card-${ean}`);
+  if (doneProducts.has(ean)) {
+    doneProducts.delete(ean);
+    if (card) card.classList.remove('done');
+    showToast('↩️ Markering fjernet', 'warning');
+  } else {
+    doneProducts.add(ean);
+    if (card) card.classList.add('done');
+    playBeep(false);
+    if (navigator.vibrate) navigator.vibrate(50);
+    showToast('✓ Markeret som færdig', 'success');
+  }
+  saveProgress();
+  updateProgress();
+  updateAllCards();
+  // Re-render detail panel
+  if (selectedEAN === ean) selectProduct(ean);
+}
+
+// ============ SEARCH ============
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => doSearch(this.value.trim()), 200);
+});
+
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSearch();
+  if (e.key === 'Enter') {
+    const first = document.querySelector('.result-item');
+    if (first) first.click();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeSearch();
+    if (scannerActive) closeScanner();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+  if (e.key === 's' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    openScanner();
+  }
+});
+
+function doSearch(query) {
+  const resultsDiv = document.getElementById('searchResults');
+  const resultsList = document.getElementById('resultsList');
+  const label = document.getElementById('resultsLabel');
+
+  if (!query) {
+    closeSearch();
+    document.querySelectorAll('.product-card.highlighted').forEach(c => c.classList.remove('highlighted'));
+    return;
+  }
+
+  const q = query.toLowerCase();
+  let matches = products.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.ean.includes(q) ||
+    String(p.pos).includes(q)
+  );
+
+  document.querySelectorAll('.product-card').forEach(c => c.classList.remove('highlighted'));
+  matches.forEach(p => {
+    const card = document.getElementById(`card-${p.ean}`);
+    if (card) card.classList.add('highlighted');
+  });
+
+  label.textContent = `${matches.length} resultater for "${query}"`;
+
+  if (matches.length === 0) {
+    resultsList.innerHTML = `<div class="no-results">🔍 Ingen resultater for "${query}"</div>`;
+  } else {
+    resultsList.innerHTML = matches.slice(0, 30).map(p => {
+      const isNew = newEANs.has(p.ean);
+      const isDone = doneProducts.has(p.ean);
+      const nameMark = p.name.replace(new RegExp(`(${escapeRegex(query)})`, 'gi'), '<mark>$1</mark>');
+      const eanMark = p.ean.replace(new RegExp(`(${escapeRegex(query)})`, 'gi'), '<mark>$1</mark>');
+      return `
+        <div class="result-item" onclick="selectProduct('${p.ean}')">
+          <div class="result-info">
+            ${isNew ? '<span class="tag tag-new">NY</span>' : ''}
+            ${isDone ? '<span class="tag tag-done">✓</span>' : ''}
+            <div class="result-name">${nameMark}</div>
+            <div class="result-ean">${eanMark}</div>
+          </div>
+          <div class="result-location">Fag ${p.fag} · H${p.hylde} · #${p.pos}</div>
+        </div>
+      `;
+    }).join('');
+    if (matches.length > 30) {
+      resultsList.innerHTML += `<div style="padding:10px;text-align:center;font-size:12px;color:var(--text-dim)">... og ${matches.length-30} flere</div>`;
+    }
+  }
+
+  resultsDiv.classList.add('visible');
+}
+
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function closeSearch() {
+  document.getElementById('searchResults').classList.remove('visible');
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.product-card.highlighted').forEach(c => c.classList.remove('highlighted'));
+}
+
+// ============ FILTER ============
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilter();
+}
+
+function applyFilter() {
+  document.querySelectorAll('.product-card').forEach(c => {
+    const ean = c.id.replace('card-', '');
+    let show = true;
+    if (activeFilter === 'new') show = newEANs.has(ean);
+    else if (activeFilter === 'done') show = doneProducts.has(ean);
+    else if (activeFilter === 'remaining') show = !doneProducts.has(ean);
+    c.style.display = show ? '' : 'none';
+  });
+}
+
+// ============ SCANNER ============
+async function openScanner() {
+  const modal = document.getElementById('scannerModal');
+  modal.classList.add('visible');
+  scannerActive = true;
+  document.getElementById('scannerStatus').textContent = 'Starter kamera...';
+
+  try {
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    const video = document.getElementById('scannerVideo');
+
+    const devices = await codeReader.listVideoInputDevices();
+    // Prefer rear camera
+    let deviceId = null;
+    const rear = devices.find(d => /back|rear|environment/i.test(d.label));
+    if (rear) deviceId = rear.deviceId;
+    else if (devices.length > 0) deviceId = devices[devices.length - 1].deviceId;
+
+    document.getElementById('scannerStatus').textContent = 'Ret kameraet mod stregkoden';
+
+    codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+      if (result && scannerActive) {
+        handleScan(result.getText());
+      }
+    });
+  } catch (e) {
+    document.getElementById('scannerStatus').textContent = '⚠️ Kan ikke tilgå kamera';
+    console.error(e);
+  }
+}
+
+function closeScanner() {
+  scannerActive = false;
+  document.getElementById('scannerModal').classList.remove('visible');
+  if (codeReader) {
+    try { codeReader.reset(); } catch (e) {}
+    codeReader = null;
+  }
+}
+
+function handleScan(code) {
+  if (!scannerActive) return;
+  scannerActive = false; // Prevent duplicate scans
+
+  // Strong vibration for scan
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  playBeep(true);
+
+  // Check if removed
+  if (removedProducts[code]) {
+    const info = removedProducts[code];
+    const replacedBy = info.replacedBy ? eanMap[info.replacedBy] : null;
+    document.getElementById('scannerStatus').textContent = '⚠️ UDGÅET VARE';
+    setTimeout(() => {
+      closeScanner();
+      let msg = `⚠️ "${info.name}" er udgået.`;
+      if (replacedBy) {
+        msg += ` Erstattes af: ${info.replacedByName}`;
+        showToast(msg, 'warning');
+        setTimeout(() => selectProduct(replacedBy.ean), 500);
+      } else {
+        msg += ' Ingen erstatning.';
+        showToast(msg, 'error');
+      }
+    }, 600);
+    return;
+  }
+
+  // Look up product
+  const p = eanMap[code];
+  if (p) {
+    document.getElementById('scannerStatus').textContent = '✓ FUNDET!';
+    setTimeout(() => {
+      closeScanner();
+      selectProduct(code);
+    }, 400);
+  } else {
+    document.getElementById('scannerStatus').textContent = '❌ Ikke i planogrammet';
+    setTimeout(() => {
+      closeScanner();
+      showToast(`❌ EAN ${code} findes ikke i dette planogram`, 'error');
+    }, 800);
+  }
+}
+
+function manualEntry() {
+  closeScanner();
+  const ean = prompt('Indtast EAN-nummer:');
+  if (ean) handleScan(ean.trim());
+}
+
+// ============ AUDIO FEEDBACK ============
+let audioCtx = null;
+function playBeep(isScan) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = isScan ? 1200 : 800;
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch (e) {}
+}
+
+// ============ TOAST ============
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  const icons = { success: '✓', warning: '⚠️', error: '❌' };
+  document.getElementById('toastIcon').textContent = icons[type] || '📍';
+  document.getElementById('toastMsg').textContent = msg;
+  toast.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ============ RESET ============
+async function resetProgress() {
+  if (!confirm('Er du sikker på at du vil nulstille al fremgang?')) return;
+  doneProducts.clear();
+  await saveProgress();
+  updateProgress();
+  updateAllCards();
+  showToast('🗑️ Fremgang nulstillet', 'warning');
+}
+
+// ============ INIT ============
+async function init() {
+  await loadTheme();
+  buildContent();
+  await loadProgress();
+  buildFagNav();
+
+  // Intersection observer for nav highlighting
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id.replace('fag-section-', '');
+        document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
+        const navBtn = document.getElementById(`nav-fag-${id}`);
+        if (navBtn) navBtn.classList.add('active');
+      }
+    });
+  }, {threshold: 0.2});
+
+  for (let f = 1; f <= 8; f++) {
+    const s = document.getElementById(`fag-section-${f}`);
+    if (s) observer.observe(s);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

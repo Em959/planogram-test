@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Butikken · Planogrammer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@zxing/library@0.21.0/umd/index.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface2: #1a1e28;
+    --surface3: #242935;
+    --border: #2a3040;
+    --accent: #00d4ff;
+    --accent-soft: rgba(0, 212, 255, 0.1);
+    --success: #4ade80;
+    --success-soft: rgba(74, 222, 128, 0.1);
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --text: #e8eaf0;
+    --text-dim: #8b92a8;
+    --text-faint: #5a6378;
+    --shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+
+  [data-theme="light"] {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #f0f3f8;
+    --surface3: #e4e9f1;
+    --border: #d8dde7;
+    --accent: #0284c7;
+    --accent-soft: rgba(2, 132, 199, 0.1);
+    --success: #16a34a;
+    --success-soft: rgba(22, 163, 74, 0.1);
+    --warning: #d97706;
+    --danger: #dc2626;
+    --text: #1a202c;
+    --text-dim: #64748b;
+    --text-faint: #94a3b8;
+    --shadow: 0 10px 40px rgba(0,0,0,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* HERO HEADER */
+  .hero {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 20px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent), #0284c7);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 12px var(--accent-soft);
+  }
+
+  .brand-text h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .brand-text p {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    font-weight: 500;
+  }
+
+  .icon-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.15s;
+  }
+
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* SEARCH & SCAN */
+  .search-wrap {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .search-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 16px 13px 46px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .search-container {
+    flex: 1;
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .btn-scan {
+    background: linear-gradient(135deg, var(--accent), #0284c7);
+    color: #fff;
+    border: none;
+    padding: 0 20px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px var(--accent-soft);
+  }
+
+  .btn-scan:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-soft); }
+  .btn-scan:active { transform: translateY(0); }
+
+  /* STATS STRIP */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.success { color: var(--success); }
+  .stat-value.warning { color: var(--warning); }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* PROGRESS OVERALL */
+  .overall-progress {
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .progress-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .progress-text .percent { color: var(--success); }
+
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--surface3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), #22c55e);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  /* MAIN CONTENT */
+  .main {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* CATEGORY GROUPS */
+  .category-group {
+    margin-bottom: 28px;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .category-icon {
+    font-size: 22px;
+  }
+
+  .category-name {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .category-count {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  /* PLANOGRAM GRID */
+  .planogram-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .planogram-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .planogram-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--accent-soft);
+  }
+
+  .planogram-card.available {
+    background: linear-gradient(135deg, var(--surface), var(--accent-soft));
+    border-color: var(--accent);
+  }
+
+  .planogram-card.coming-soon {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .planogram-card.coming-soon:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border);
+  }
+
+  .pg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pg-number {
+    width: 36px;
+    height: 36px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .planogram-card.available .pg-number {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .pg-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .status-ready {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid var(--success);
+  }
+
+  .status-pending {
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .pg-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .pg-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    flex: 1;
+  }
+
+  .pg-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .pg-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .pg-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pg-progress-mini {
+    width: 60px;
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .pg-progress-mini-fill {
+    height: 100%;
+    background: var(--success);
+    transition: width 0.3s;
+  }
+
+  .pg-progress-label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-weight: 700;
+  }
+
+  /* SEARCH RESULTS OVERLAY */
+  .search-overlay {
+    display: none;
+    position: fixed;
+    top: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(600px, 92vw);
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    border-radius: 14px;
+    z-index: 200;
+    max-height: 440px;
+    box-shadow: var(--shadow);
+    flex-direction: column;
+  }
+
+  .search-overlay.visible { display: flex; }
+
+  .search-header-overlay {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 20px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    line-height: 1;
+  }
+
+  .close-btn:hover { color: var(--text); background: var(--surface3); }
+
+  .results-list { overflow-y: auto; flex: 1; }
+
+  .result-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.1s;
+  }
+
+  .result-item:hover { background: var(--accent-soft); }
+  .result-item:last-child { border-bottom: none; }
+
+  .result-info { flex: 1; min-width: 0; }
+
+  .result-planogram {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 3px;
+  }
+
+  .result-name { font-size: 13px; font-weight: 600; }
+  .result-name mark { background: rgba(255,215,0,0.3); color: var(--warning); border-radius: 2px; padding: 0 2px; }
+  .result-ean { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); margin-top: 3px; }
+
+  .result-location {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    flex-shrink: 0;
+    border: 1px solid var(--accent);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .no-results { padding: 32px; text-align: center; color: var(--text-dim); font-size: 14px; }
+
+  /* SCANNER */
+  .scanner-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.94);
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scanner-modal.visible { display: flex; }
+
+  .scanner-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7), transparent);
+  }
+
+  .scanner-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .scanner-close {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scanner-viewport {
+    position: relative;
+    width: min(90vw, 500px);
+    aspect-ratio: 4/3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 0 60px var(--accent-soft);
+  }
+
+  #scannerVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scanner-frame {
+    position: absolute;
+    inset: 15% 10%;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+
+  .scanner-frame::before, .scanner-frame::after,
+  .scanner-frame > span::before, .scanner-frame > span::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--accent);
+  }
+
+  .scanner-frame::before { top: -3px; left: -3px; border-right: none; border-bottom: none; border-radius: 12px 0 0 0; }
+  .scanner-frame::after { top: -3px; right: -3px; border-left: none; border-bottom: none; border-radius: 0 12px 0 0; }
+  .scanner-frame > span::before { bottom: -3px; left: -3px; border-right: none; border-top: none; border-radius: 0 0 0 12px; }
+  .scanner-frame > span::after { bottom: -3px; right: -3px; border-left: none; border-top: none; border-radius: 0 0 12px 0; }
+
+  .scan-line {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    top: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: scanMove 2s ease-in-out infinite;
+  }
+
+  @keyframes scanMove {
+    0%, 100% { top: 20%; }
+    50% { top: 80%; }
+  }
+
+  .scanner-hint {
+    margin-top: 24px;
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+
+  .scanner-hint strong {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+
+  .scanner-manual {
+    margin-top: 14px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1.5px solid var(--accent);
+    color: var(--text);
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 2000;
+    transition: transform 0.3s ease;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 90vw;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--success); }
+  .toast.warning { border-color: var(--warning); }
+  .toast.error { border-color: var(--danger); }
+
+  /* MODAL */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1500;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal.visible { display: flex; }
+
+  .modal-content {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+
+  .modal-text {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .modal-text strong { color: var(--text); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  .btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .btn.primary:hover { transform: translateY(-1px); color: #fff; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    .hero { padding: 18px 14px 14px; }
+    .main { padding: 14px; }
+    .brand-text h1 { font-size: 18px; }
+    .planogram-grid { grid-template-columns: 1fr; }
+  }
+
+  kbd {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body data-theme="dark">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-top">
+    <div class="brand">
+      <div class="brand-mark">🏪</div>
+      <div class="brand-text">
+        <h1>City SP2</h1>
+        <p>Butikkens planogram-assistent</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px">
+      <button class="icon-btn" onclick="showInfo()" title="Info">ℹ️</button>
+      <button class="icon-btn" onclick="toggleTheme()" title="Skift tema" id="themeBtn">🌙</button>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="globalSearch" placeholder="Søg i hele butikken: produkt, EAN, planogram..." autocomplete="off">
+    </div>
+    <button class="btn-scan" onclick="openScanner()">
+      <span>📷</span>
+      <span>Scan</span>
+    </button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-strip">
+  <div class="stat-card">
+    <div class="stat-value accent" id="statPlanograms">1</div>
+    <div class="stat-label">Planogrammer</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="statProducts">311</div>
+    <div class="stat-label">Produkter</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value success" id="statDone">0</div>
+    <div class="stat-label">Færdig</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value warning" id="statRemaining">311</div>
+    <div class="stat-label">Mangler</div>
+  </div>
+</div>
+
+<!-- OVERALL PROGRESS -->
+<div class="overall-progress">
+  <div class="progress-info">
+    <div class="progress-label">Butik fremgang</div>
+    <div class="progress-text"><span id="overallText">0%</span></div>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="overallFill"></div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div id="categoryContainer"></div>
+</div>
+
+<!-- SEARCH RESULTS -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-header-overlay">
+    <span id="resultsLabel">Resultater</span>
+    <button class="close-btn" onclick="closeSearch()">✕</button>
+  </div>
+  <div class="results-list" id="resultsList"></div>
+</div>
+
+<!-- SCANNER -->
+<div class="scanner-modal" id="scannerModal">
+  <div class="scanner-header">
+    <div class="scanner-title">
+      <span>📷</span>
+      <span>Scan stregkode</span>
+    </div>
+    <button class="scanner-close" onclick="closeScanner()">✕</button>
+  </div>
+  <div class="scanner-viewport">
+    <video id="scannerVideo" autoplay muted playsinline></video>
+    <div class="scanner-frame"><span></span></div>
+    <div class="scan-line"></div>
+  </div>
+  <div class="scanner-hint">
+    <strong id="scannerStatus">Ret kameraet mod stregkoden</strong>
+    <span>Søger i alle planogrammer...</span>
+  </div>
+  <button class="scanner-manual" onclick="manualEntry()">⌨️ Indtast EAN manuelt</button>
+</div>
+
+<!-- INFO MODAL -->
+<div class="modal" id="infoModal">
+  <div class="modal-content">
+    <div class="modal-title">💡 Sådan bruger du appen</div>
+    <div class="modal-text">
+      <p style="margin-bottom:10px"><strong>🔍 Søg i hele butikken:</strong> Skriv navn, EAN eller position — appen finder produktet i det rigtige planogram.</p>
+      <p style="margin-bottom:10px"><strong>📷 Scan stregkode:</strong> Åbn kameraet, scan et produkt, og appen hopper direkte til rette hylde.</p>
+      <p style="margin-bottom:10px"><strong>📋 Åbn planogram:</strong> Klik på et planogram-kort for at se alle hylder og markere produkter som færdige.</p>
+      <p><strong>⌨️ Genveje:</strong> <kbd>Ctrl+K</kbd> søg · <kbd>S</kbd> scan · <kbd>Esc</kbd> luk</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="closeInfo()">Forstået</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">📍</span>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// ============ PLANOGRAMS REGISTRY ============
+// Tilføj nye planogrammer her efterhånden som de bliver klar
+const planograms = {
+  'ost-og-palaeg': {
+    id: 'ost-og-palaeg',
+    number: '08',
+    title: 'Ost og pålæg',
+    desc: 'Ost, leverpostej, pålæg, fiskesalater og kolonial',
+    category: 'koel',
+    fags: 8,
+    shelves: 6,
+    width: '125 cm',
+    available: true,
+    file: 'planogram-pro.html',
+  },
+
+  // EKSEMPLER - erstat med rigtige planogrammer når du sender PDFs
+  'frugt-og-groent': {
+    id: 'frugt-og-groent',
+    number: '01',
+    title: 'Frugt og grønt',
+    desc: 'Frisk frugt, grøntsager og salater',
+    category: 'frisk',
+    available: false,
+  },
+  'broed-og-bageri': {
+    id: 'broed-og-bageri',
+    number: '02',
+    title: 'Brød og bageri',
+    desc: 'Friskbagt brød, rundstykker og kager',
+    category: 'frisk',
+    available: false,
+  },
+  'mejeri': {
+    id: 'mejeri',
+    number: '03',
+    title: 'Mejeri',
+    desc: 'Mælk, yoghurt, smør og fløde',
+    category: 'koel',
+    available: false,
+  },
+  'koed-og-fjerkrae': {
+    id: 'koed-og-fjerkrae',
+    number: '04',
+    title: 'Kød og fjerkræ',
+    desc: 'Fersk kød, kylling og oksekød',
+    category: 'koel',
+    available: false,
+  },
+  'frost': {
+    id: 'frost',
+    number: '05',
+    title: 'Frost',
+    desc: 'Frosne grøntsager, kød, fisk og is',
+    category: 'frost',
+    available: false,
+  },
+  'drikkevarer': {
+    id: 'drikkevarer',
+    number: '06',
+    title: 'Drikkevarer',
+    desc: 'Sodavand, juice, vand og energidrikke',
+    category: 'tor',
+    available: false,
+  },
+  'kolonial': {
+    id: 'kolonial',
+    number: '07',
+    title: 'Kolonial',
+    desc: 'Pasta, ris, konserves og krydderier',
+    category: 'tor',
+    available: false,
+  },
+  'slik-og-snacks': {
+    id: 'slik-og-snacks',
+    number: '09',
+    title: 'Slik og snacks',
+    desc: 'Chokolade, chips og nødder',
+    category: 'tor',
+    available: false,
+  },
+  'husholdning': {
+    id: 'husholdning',
+    number: '10',
+    title: 'Husholdning',
+    desc: 'Rengøringsmidler og papirvarer',
+    category: 'nonfood',
+    available: false,
+  },
+  'personlig-pleje': {
+    id: 'personlig-pleje',
+    number: '11',
+    title: 'Personlig pleje',
+    desc: 'Shampoo, tandpasta og kosmetik',
+    category: 'nonfood',
+    available: false,
+  },
+  'vin-og-spiritus': {
+    id: 'vin-og-spiritus',
+    number: '12',
+    title: 'Vin og spiritus',
+    desc: 'Vin, øl og spiritus',
+    category: 'tor',
+    available: false,
+  },
+};
+
+const categories = {
+  frisk: { name: 'Frisk afdeling', icon: '🥬', order: 1 },
+  koel: { name: 'Køl', icon: '❄️', order: 2 },
+  frost: { name: 'Frost', icon: '🧊', order: 3 },
+  tor: { name: 'Tørvarer', icon: '📦', order: 4 },
+  nonfood: { name: 'Non-food', icon: '🧴', order: 5 },
+};
+
+// ============ PRODUCT DATABASE ============
+// Produkter fra alle planogrammer — tilføj produkter her når nye planogrammer kommer
+// Format: { ean, name, planogram, fag, hylde, pos }
+const allProducts = [
+  // Planogram: ost-og-palaeg (alle 311 produkter)
+  {ean:'5706911028038',name:'LAKSETOPPING 150 G',pg:'ost-og-palaeg',fag:1,hylde:1,pos:1},
+  {ean:'5715569948896',name:'COOP PULLED LAKS 125 G',pg:'ost-og-palaeg',fag:1,hylde:1,pos:2},
+  {ean:'7340191156197',name:'COOP RØGET LAKS ASC 100 G',pg:'ost-og-palaeg',fag:1,hylde:1,pos:3},
+  {ean:'7340191156203',name:'COOP GRAVAD LAKS ASC 100 G',pg:'ost-og-palaeg',fag:1,hylde:1,pos:4},
+  {ean:'7340011317241',name:'ØKO ÄNGLAMARK KOLDRØGET LAKS 100 G',pg:'ost-og-palaeg',fag:1,hylde:1,pos:5},
+  {ean:'5715348128471',name:'IRMA RØGET LAKS ASC 125 G',pg:'ost-og-palaeg',fag:1,hylde:1,pos:6},
+  {ean:'5701665130129',name:'RØGET ØRRED 100 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:7},
+  {ean:'5706911029202',name:'RØGET DANSK LAKS I SKIVER ASC 100 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:8},
+  {ean:'5711865716627',name:'COOP VARMRØGET LAKS MED PEBER 125 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:9},
+  {ean:'5715348128518',name:'IRMA VARMRØGET LAKS M/HVIDLØG 125 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:10},
+  {ean:'5715348128532',name:'IRMA VARMRØGET LAKS M/PEBER 125 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:11},
+  {ean:'5706911029189',name:'SMOKEHOUSE VARMRØGET LAKS M/PEBER 200 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:12},
+  {ean:'5706911029172',name:'SMOKEHOUSE VARMRØGET LAKS NATUREL 200 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:13},
+  {ean:'5710326020242',name:'SEAFOOD SELECT VARMRØG ØRREDFILET 100G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:14},
+  {ean:'5710326018867',name:'VARMRØGET MAKREL MED PEBER 150 G',pg:'ost-og-palaeg',fag:1,hylde:2,pos:15},
+  {ean:'7340191175853',name:'COOP REJER I LAGE 330/170 G',pg:'ost-og-palaeg',fag:1,hylde:3,pos:16},
+  {ean:'5706911026997',name:'KAPTAJNENS FANGST REJER I LAGE 400/200 G',pg:'ost-og-palaeg',fag:1,hylde:3,pos:17},
+  {ean:'5701263908670',name:'LAUNIS SKAGEN REJER MSC 360/170 G',pg:'ost-og-palaeg',fag:1,hylde:3,pos:18},
+  {ean:'5740301217770',name:'XXL KUTTERREJER I LAGE 180/80 G',pg:'ost-og-palaeg',fag:1,hylde:3,pos:19},
+  {ean:'7340191158290',name:'COOP REJER I LAGE L 680/350 G',pg:'ost-og-palaeg',fag:1,hylde:3,pos:20},
+  {ean:'5705550305999',name:'AMANDA MAKRELKRÆS 100 G',pg:'ost-og-palaeg',fag:1,hylde:3,pos:21},
+  {ean:'5715348092680',name:'COOP FISKEFRIKADELLER 340 G',pg:'ost-og-palaeg',fag:1,hylde:4,pos:22},
+  {ean:'5730444919648',name:'HAVETS MINI FISKEFRIKADELLER JEKA 200 G',pg:'ost-og-palaeg',fag:1,hylde:4,pos:23},
+  {ean:'5730444916272',name:'HAVETS LAKSEFRIKADELLER 4X65 G 260 G',pg:'ost-og-palaeg',fag:1,hylde:4,pos:24},
+  {ean:'5730444915862',name:'HAVETS FISKEFRIKADELLER 4X65 G 260 G',pg:'ost-og-palaeg',fag:1,hylde:4,pos:25},
+  {ean:'5730444919600',name:"HAVET'S FISKEFRIKADELLE JEKA 380 G",pg:'ost-og-palaeg',fag:1,hylde:4,pos:26},
+  {ean:'5740301198260',name:'RG KAVIAR STENBIDERROGN SORT MSC 50 G',pg:'ost-og-palaeg',fag:1,hylde:4,pos:27},
+  {ean:'5701263901596',name:'LYKKEBERG LAKSEPATE 200 G MSC',pg:'ost-og-palaeg',fag:1,hylde:4,pos:28},
+  {ean:'5706911029905',name:'RØGET ØRRED MED PEBER ASC 100 G',pg:'ost-og-palaeg',fag:1,hylde:4,pos:29},
+  {ean:'5701379132242',name:'IRMA KARRYRSILD GAMMELDAGS MODN BIDDER',pg:'ost-og-palaeg',fag:1,hylde:5,pos:30},
+  {ean:'5701379132211',name:'IRMA MAR SILD GL MODNED BIDDER 500/245 G',pg:'ost-og-palaeg',fag:1,hylde:5,pos:31},
+  {ean:'5701379222257',name:'IRMA KRYDDERSILD GL MOD BIDDER 250/500G',pg:'ost-og-palaeg',fag:1,hylde:5,pos:32},
+  {ean:'5709345002865',name:'LYKKEBERG 1899 STEGTE SILD 500/250 G',pg:'ost-og-palaeg',fag:1,hylde:5,pos:33},
+  {ean:'5709345003206',name:'KARRYSILD MED ÆBLE OG TIMIAN 350 G',pg:'ost-og-palaeg',fag:1,hylde:5,pos:34},
+  {ean:'5701379321127',name:'RIVÖFJORDENS BENFRI SILD 100G/65G',pg:'ost-og-palaeg',fag:1,hylde:5,pos:35},
+  {ean:'5704068017288',name:'K-SALAT GROV REMOULADE PS 250 G',pg:'ost-og-palaeg',fag:1,hylde:5,pos:36},
+  {ean:'5704068017134',name:'K-SALAT ÆGTE MAYONNAISE PS 250 ML',pg:'ost-og-palaeg',fag:1,hylde:5,pos:37},
+  {ean:'5702040890140',name:'BÄHNCKE DILDDRESSING 300 G',pg:'ost-og-palaeg',fag:1,hylde:5,pos:38},
+  {ean:'7340191153820',name:'COOP KARRY SILD I BID 470 G',pg:'ost-og-palaeg',fag:1,hylde:6,pos:39},
+  {ean:'7340191178861',name:'COOP MARINEREDE SILD I BIDDER 500/245 G',pg:'ost-og-palaeg',fag:1,hylde:6,pos:40},
+  {ean:'7340191153721',name:'COOP KRYDDER SILD I BID 500/245 G',pg:'ost-og-palaeg',fag:1,hylde:6,pos:41},
+  {ean:'7340191178878',name:'COOP SENNEPSILD I BIDDER 490 G',pg:'ost-og-palaeg',fag:1,hylde:6,pos:42},
+  {ean:'7340191158030',name:'XTRA SILD MARINEREDE BIDDER SP 700/345 G',pg:'ost-og-palaeg',fag:1,hylde:6,pos:43},
+  {ean:'5701379112503',name:'HIRTSHALS STORE FILETER 800/400G',pg:'ost-og-palaeg',fag:1,hylde:6,pos:44},
+  {ean:'5706911028304',name:'HEL MAKREL 250 G',pg:'ost-og-palaeg',fag:1,hylde:6,pos:45},
+  {ean:'5700382686025',name:'XTRA MAKRELSALAT 300 G',pg:'ost-og-palaeg',fag:2,hylde:1,pos:46},
+  {ean:'5715569942047',name:'XTRA TUNSALAT 250G',pg:'ost-og-palaeg',fag:2,hylde:1,pos:47},
+  {ean:'5715569942108',name:'XTRA SKINKESALAT 250G',pg:'ost-og-palaeg',fag:2,hylde:1,pos:48},
+  {ean:'5700382686001',name:'XTRA HØNSESALAT 250 G',pg:'ost-og-palaeg',fag:2,hylde:1,pos:49},
+  {ean:'5715569942085',name:'XTRA ITALIENSK SALAT 300G',pg:'ost-og-palaeg',fag:2,hylde:1,pos:50},
+  {ean:'5700382685974',name:'XTRA RUSSISKSALAT 250 G',pg:'ost-og-palaeg',fag:2,hylde:1,pos:51},
+  {ean:'5704000496751',name:'K-SALAT ITALIENSK SALAT SR 150 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:52},
+  {ean:'5701018044707',name:'K-SALAT ÆGGESALAT 150 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:53},
+  {ean:'5704000496164',name:'K-SALAT PEBERRODSSALAT 100 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:54},
+  {ean:'5704000496829',name:'K-SALAT HØNS M PLUK HØNSEKØD SR 150 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:55},
+  {ean:'5704000496744',name:'K-SALAT KYLLING M/BACON 150 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:56},
+  {ean:'5704000496515',name:'K-SALAT FINTHAK SKINKE SR 150 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:57},
+  {ean:'5715569942061',name:'XTRA KARRYSALAT 300G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:58},
+  {ean:'5707669210027',name:'KRAFT SKY 200 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:59},
+  {ean:'5707196279092',name:'PÅLÆKKER KLASSIKER RULLEPØLSE 90 G',pg:'ost-og-palaeg',fag:2,hylde:2,pos:60},
+  {ean:'5704000474544',name:'K-SALAT REJESALAT LÆKKERIER 150 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:61},
+  {ean:'5701018044820',name:'K-SALAT MAKRELSALAT 150 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:62},
+  {ean:'5704000496775',name:'K-SALAT TUNSALAT SR 150 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:63},
+  {ean:'5704000491602',name:'K-SALAT KRABBESALAT 150 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:64},
+  {ean:'5704000491619',name:'K-SALAT SKAGENSALAT 150 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:65},
+  {ean:'4006229002630',name:'LILLE BJØRN MORTADELLA REINERT 80 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:66},
+  {ean:'4000404049212',name:'BÖKLUNDER KALKUNSALAMI 80 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:67},
+  {ean:'5705333099442',name:'HAMMEL SPEGEPØLSE DEN ORIG. SLICE 100 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:68},
+  {ean:'5700383342265',name:'XTRA SALAMI, SKIVER 200 G',pg:'ost-og-palaeg',fag:2,hylde:3,pos:69},
+  {ean:'5709760009081',name:'ØKO HANEGAL KYLLINGE LEVERPOSTEJ 200 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:70},
+  {ean:'5709760086471',name:'ØKO PLANTEPOSTEJ HANEGAL 200 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:71},
+  {ean:'7340011432906',name:'ØKO ÄNGLAMARK LEVERPOSTEJ 200 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:72},
+  {ean:'5704000502476',name:'FRANSK VAC FAST LEVERPOSTEJ 160 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:73},
+  {ean:'8595121893027',name:'SPANSK INSPIRERET PATÉ SANPAREIL 150 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:74},
+  {ean:'5410321601261',name:'HVIDLØG PATÉ 250 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:75},
+  {ean:'5708123004107',name:'CERVELATPØLSE LEIF HENRIKSEN 300 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:76},
+  {ean:'5709760087171',name:'ØKO HANEGAL KYLLINGEKØDPØLSE 200 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:77},
+  {ean:'5707196302851',name:'PÅLÆKKER JULEPOSTEJ 300 G',pg:'ost-og-palaeg',fag:2,hylde:5,pos:78},
+  {ean:'7340011380054',name:'XTRA LEVERPOSTEJ 500 G',pg:'ost-og-palaeg',fag:2,hylde:6,pos:79},
+  {ean:'7340011444435',name:'COOP BACON LEVERPOSTEJ 350 G',pg:'ost-og-palaeg',fag:2,hylde:6,pos:80},
+  {ean:'5704000000729',name:'FRANSK LEVERPOSTEJ STRYHN\'S 200 G',pg:'ost-og-palaeg',fag:2,hylde:6,pos:81},
+  {ean:'5704000001023',name:'GROVH POSTEJ STRYHNS 200 G',pg:'ost-og-palaeg',fag:2,hylde:6,pos:82},
+  {ean:'5704000502391',name:'GROVHAKKET POSTEJ 400 G',pg:'ost-og-palaeg',fag:2,hylde:6,pos:83},
+  {ean:'5707196233728',name:'BACON LEVERPOSTEJ TULIP 200 G',pg:'ost-og-palaeg',fag:2,hylde:6,pos:84},
+  {ean:'5707196234053',name:'SØNDERJYSK SPEGEPØLSE PÅLÆKKER 125 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:85},
+  {ean:'7340191163577',name:'COOP SANDWICH KYLLING SKIVER 100 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:86},
+  {ean:'7340191163584',name:'COOP SANDWICH KYLLING SKIVER PEBER URTER',pg:'ost-og-palaeg',fag:3,hylde:1,pos:87},
+  {ean:'5707196357332',name:'PÅLÆKKER KYLLING TOMAT & TIMIAN 90 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:88},
+  {ean:'5707196357363',name:'PÅLÆKKER KYLLING KLASSISK SANDWICHSKIVER',pg:'ost-og-palaeg',fag:3,hylde:1,pos:89},
+  {ean:'5707196179194',name:'DEN GRØNNE SLAGTER KYLLING M CHILI 100 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:90},
+  {ean:'5707196093254',name:'DGS KYLLINGEBRYST 90 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:91},
+  {ean:'5756111324249',name:'SKINKE GÅRDLYKKE 80 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:92},
+  {ean:'5756111324201',name:'ROASTBEEF GÅRDLYKKE 60 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:93},
+  {ean:'5756111324225',name:'RULLEPØLSE GÅRDLYKKE 80 G',pg:'ost-og-palaeg',fag:3,hylde:1,pos:94},
+  {ean:'5707196154573',name:'HAMBURGERRYG PÅLÆKKER 90 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:95},
+  {ean:'7340011404422',name:'COOP SØNDERJYSK SPEGEPØLSE 115 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:96},
+  {ean:'7340011441083',name:'COOP KARTOFFELSPEGEPØLSE 115 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:97},
+  {ean:'7340011404415',name:'COOP HVIDLØGS SPEGEPØLSE 115 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:98},
+  {ean:'5704080955872',name:'KARTOFFELSPEGEPØLSE 125 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:99},
+  {ean:'5704080960272',name:'3-STJERNET OKSESPEGEPØLSE 80 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:100},
+  {ean:'5704080955841',name:'3 STJERNET KØDPØLSE 125 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:101},
+  {ean:'57067698',name:'JÆGERPØLSE 9% FEDT 3 STJERNET 110 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:102},
+  {ean:'5707196213379',name:'RULLEPØLSE (KAM) DGS 70 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:103},
+  {ean:'5707196155433',name:'HAMBURGERRYG DGS 80 G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:104},
+  {ean:'5707196205213',name:'VEGGIE PÅLÆG M PEBER DEN GR SLAGTER 80G',pg:'ost-og-palaeg',fag:3,hylde:2,pos:105},
+  {ean:'5704080955919',name:'3-STJERNET SALAMI I SKIVER 200 G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:106},
+  {ean:'5703986061120',name:'ØKO SPEGEPØLSE KLASSISK HØJER PØL 200G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:107},
+  {ean:'5703986061519',name:'OKSE SPEGEPØLSE HØJER PØLSER 200 G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:108},
+  {ean:'5756111100249',name:'FRANSK HVIDLØGSSPEGEPØLSE 300 G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:109},
+  {ean:'5756111100225',name:'SØNDERJYSK SPEGEPØLSE 300 G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:110},
+  {ean:'5703986065050',name:'KARTOFFEL SPEGEPØLSE HØJER PØLSER 300 G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:111},
+  {ean:'5704000469083',name:'STRYHNS SYLTE 175 G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:112},
+  {ean:'5704000519252',name:'STRYHNS JULESYLTE 300 G',pg:'ost-og-palaeg',fag:3,hylde:3,pos:113},
+  {ean:'5715569980407',name:'COOP TYNDSKÅRET KYLLING 80 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:114},
+  {ean:'7340011426349',name:'COOP KYLLINGEBRYST STEGT 90 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:115},
+  {ean:'5715569980384',name:'COOP TYNDSKÅRET SKINKE 80 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:116},
+  {ean:'7340011426332',name:'COOP PEBERSKINKE 100 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:117},
+  {ean:'7340011426363',name:'COOP RULLEPØLSE LAV FEDT 90 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:118},
+  {ean:'5707196354140',name:'ØKO FRILAND HAMBURGERRYG 70 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:119},
+  {ean:'5707196354171',name:'ØKO FRILAND RULLEPØLSE 70 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:120},
+  {ean:'5707196354249',name:'ØKO FRILAND SPEGEPØLSE 70 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:121},
+  {ean:'5708123010009',name:'GL.DAGS SPEGEPØLSE LEIF HENRIKSEN 400 G',pg:'ost-og-palaeg',fag:3,hylde:4,pos:122},
+  {ean:'7340011434085',name:'COOP SALTKØD SKIVER 80 G',pg:'ost-og-palaeg',fag:3,hylde:5,pos:123},
+  {ean:'7340011434092',name:'COOP ROASTBEEF SKIVER 70 G',pg:'ost-og-palaeg',fag:3,hylde:5,pos:124},
+  {ean:'5715569980360',name:'COOP KAMSTEG 100 G',pg:'ost-og-palaeg',fag:3,hylde:5,pos:125},
+  {ean:'5715569982883',name:'COOP RØGET FILET 100 G',pg:'ost-og-palaeg',fag:3,hylde:5,pos:126},
+  {ean:'7340191176447',name:'COOP HAMBURGERRYG 100 G',pg:'ost-og-palaeg',fag:3,hylde:5,pos:127},
+  {ean:'7340191176430',name:'COOP RULLEPØLSE 100 G',pg:'ost-og-palaeg',fag:3,hylde:5,pos:128},
+  {ean:'7340011403012',name:'COOP FRIKADELLEPØLSE SKIVER 120 G',pg:'ost-og-palaeg',fag:3,hylde:5,pos:129},
+  {ean:'7340011322306',name:'XTRA KOGT SKINKE SKIVER 150 G',pg:'ost-og-palaeg',fag:3,hylde:6,pos:130},
+  {ean:'7340011477259',name:'XTRA HAMBURGERRYG 140 G',pg:'ost-og-palaeg',fag:3,hylde:6,pos:131},
+  {ean:'7340011477242',name:'XTRA RULLEPØLSE 140 G',pg:'ost-og-palaeg',fag:3,hylde:6,pos:132},
+  {ean:'7340011477235',name:'XTRA KYLLINGEBRYST 100 G',pg:'ost-og-palaeg',fag:3,hylde:6,pos:133},
+  {ean:'5907547723575',name:'TICAN KØDPØLSE 100 G',pg:'ost-og-palaeg',fag:3,hylde:6,pos:134},
+  {ean:'5709760089595',name:'ØKO BEEF STICK 20 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:135},
+  {ean:'5704080959719',name:'STJERNEHAPS MINI SALAMI 4 X 10 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:136},
+  {ean:'5709760003188',name:'ØKO HANEGAL KYLLINGE WIENER PØLSER 250 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:137},
+  {ean:'5760725234269',name:'ROSE KYLLINGESTRIMLER STEGT 150 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:138},
+  {ean:'5760725234450',name:'ROSE INDERFILET M/BBQ STEGT 150 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:139},
+  {ean:'5707196309232',name:'DGS KALKUNBACON 100 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:140},
+  {ean:'5707196242485',name:'TULIP BACON I SKIVER 125G GAS',pg:'ost-og-palaeg',fag:4,hylde:1,pos:141},
+  {ean:'5715569978541',name:'ØKO IRMA TØRSALTET BACON I SKIVER 100 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:142},
+  {ean:'5707196273106',name:'TULIP STEGT BACON I SKIVER 50 G',pg:'ost-og-palaeg',fag:4,hylde:1,pos:143},
+  {ean:'5907547727603',name:'KYLLINGEMINIPØLSER ZAKLADY 300 G',pg:'ost-og-palaeg',fag:4,hylde:2,pos:144},
+  {ean:'5907547721816',name:'PØLSEHORNSPØLSER NOVE 240 G',pg:'ost-og-palaeg',fag:4,hylde:2,pos:145},
+  {ean:'5703986022404',name:'HØJER SDJ KÅLPØLSER 320 G 4 STK',pg:'ost-og-palaeg',fag:4,hylde:2,pos:146},
+  {ean:'7340011490784',name:'COOP KYLLINGETERN 150 G',pg:'ost-og-palaeg',fag:4,hylde:2,pos:147},
+  {ean:'7340011344476',name:'XTRA BACON TERN 200 G',pg:'ost-og-palaeg',fag:4,hylde:2,pos:148},
+  {ean:'5707196201857',name:'TULIP BACON TERN 300 G',pg:'ost-og-palaeg',fag:4,hylde:2,pos:149},
+  {ean:'5707196310931',name:'STEFF HOULBERG SYLTE 8X300 G',pg:'ost-og-palaeg',fag:4,hylde:3,pos:150},
+  {ean:'5701293650204',name:'BLODPØLSE STEFF HOULBERG 400 G',pg:'ost-og-palaeg',fag:4,hylde:3,pos:151},
+  {ean:'7340011344483',name:'XTRA SKINKE STRIMLER 200 G',pg:'ost-og-palaeg',fag:4,hylde:3,pos:152},
+  {ean:'7340191124967',name:'XTRA BACON SKIVER 140 G',pg:'ost-og-palaeg',fag:4,hylde:3,pos:153},
+  {ean:'5707196172713',name:'BACON I SKIVER TULIP 3X125 G',pg:'ost-og-palaeg',fag:4,hylde:3,pos:154},
+  {ean:'5707196181012',name:'SKINKESTRIMLER STEFF 175 G',pg:'ost-og-palaeg',fag:4,hylde:4,pos:155},
+  {ean:'7340191147362',name:'COOP SKINKE I TERN 150 G',pg:'ost-og-palaeg',fag:4,hylde:4,pos:156},
+  {ean:'7340011344490',name:'XTRA COCKTAIL PØLSER 200 G',pg:'ost-og-palaeg',fag:4,hylde:4,pos:157},
+  {ean:'5707196181043',name:'COCKTAILPØLSER STEFF 200 G',pg:'ost-og-palaeg',fag:4,hylde:4,pos:158},
+  {ean:'7340191147379',name:'COOP PEPPERONI SKIVER 150 G',pg:'ost-og-palaeg',fag:4,hylde:4,pos:159},
+  {ean:'5707196204339',name:'STEFF HOULBERG BRUNCH PØLSER 300 G',pg:'ost-og-palaeg',fag:4,hylde:5,pos:160},
+  {ean:'5707196133561',name:'STEFF HOULBERG HOTDOG PØLSER 375 G',pg:'ost-og-palaeg',fag:4,hylde:5,pos:161},
+  {ean:'5707196133592',name:'STEFF HOULBERG BAYERSKE PØLSER 375 G',pg:'ost-og-palaeg',fag:4,hylde:5,pos:162},
+  {ean:'5707196155273',name:'STEFF HOULBERG GRILLPØLSER 400 G',pg:'ost-og-palaeg',fag:4,hylde:5,pos:163},
+  {ean:'5707196155464',name:'STEFF HOULBERG GRILLPØLSER MED OST 350 G',pg:'ost-og-palaeg',fag:4,hylde:5,pos:164},
+  {ean:'7340011382485',name:'XTRA PARTY PØLSER 10 STK 500 G',pg:'ost-og-palaeg',fag:4,hylde:6,pos:165},
+  {ean:'7340191174429',name:'COOP HOTDOG PØLSER 300 G',pg:'ost-og-palaeg',fag:4,hylde:6,pos:166},
+  {ean:'7340191174412',name:'COOP GRILLPØLSER 375 G',pg:'ost-og-palaeg',fag:4,hylde:6,pos:167},
+  {ean:'7340191174399',name:'COOP FRANKFURTER MED OST 360 G',pg:'ost-og-palaeg',fag:4,hylde:6,pos:168},
+  {ean:'7340191174405',name:'COOP FRANKFURTER 360 G',pg:'ost-og-palaeg',fag:4,hylde:6,pos:169},
+  {ean:'5715348143375',name:'COOP LASAGNEPLADER 250 G',pg:'ost-og-palaeg',fag:5,hylde:1,pos:170},
+  {ean:'8017268125484',name:'CAPPELLETTI M PROSCIUTTO CRUDO 500 G',pg:'ost-og-palaeg',fag:5,hylde:1,pos:171},
+  {ean:'8017268125705',name:'BREMA TORTELLONI M/RICOTTA/SPINAT 500 G',pg:'ost-og-palaeg',fag:5,hylde:1,pos:172},
+  {ean:'8017268125132',name:'BREMA RAVIOLI M KARL JOHN SVAMPE 250 G',pg:'ost-og-palaeg',fag:5,hylde:1,pos:173},
+  {ean:'4015236000683',name:'ORG. SCHWARZWÄLDER SKINKE 100 G',pg:'ost-og-palaeg',fag:5,hylde:1,pos:174},
+  {ean:'5715348142903',name:'COOP FETTUCINE 500G',pg:'ost-og-palaeg',fag:5,hylde:2,pos:175},
+  {ean:'5700383518981',name:'COOP FETTUCCINE SPINAT 250 G',pg:'ost-og-palaeg',fag:5,hylde:2,pos:176},
+  {ean:'5715348099412',name:'ØKO ÄNGLAMARK FETTUCINE FULDKORN 250 G',pg:'ost-og-palaeg',fag:5,hylde:2,pos:177},
+  {ean:'5715348142927',name:'ØKO ÄNGLAMARK SPAGHETTI 250 G',pg:'ost-og-palaeg',fag:5,hylde:2,pos:178},
+  {ean:'5704080958668',name:'AALBÆK LANDSPEGEPØLSE 200 G',pg:'ost-og-palaeg',fag:5,hylde:2,pos:179},
+  {ean:'5704080955452',name:'AALBÆK CHORIZO MED RØGET PAPRIKA 200 G',pg:'ost-og-palaeg',fag:5,hylde:2,pos:180},
+  {ean:'5701293658712',name:'STEFF HOULBERG RIS A LA MANDE 500 G',pg:'ost-og-palaeg',fag:5,hylde:3,pos:181},
+  {ean:'5706041007590',name:'TOFU MED CITRONGRÆS/CHILI',pg:'ost-og-palaeg',fag:5,hylde:3,pos:182},
+  {ean:'7300156582089',name:'ØKO ÄNGLAMARK TOFU NATUREL 250 G',pg:'ost-og-palaeg',fag:5,hylde:3,pos:183},
+  {ean:'5715051000828',name:'ØKO SVAMPEDELLEN 220 G 4 STK',pg:'ost-og-palaeg',fag:5,hylde:3,pos:184},
+  {ean:'5744007620001',name:'MINI FRIKADELLER 200 G',pg:'ost-og-palaeg',fag:5,hylde:3,pos:185},
+  {ean:'5744007660007',name:'MIDDAGSFRIKADELLER 250 G',pg:'ost-og-palaeg',fag:5,hylde:3,pos:186},
+  {ean:'5744007660014',name:'KYLLING KALKUN FRIKADELLER 200 G',pg:'ost-og-palaeg',fag:5,hylde:3,pos:187},
+  {ean:'5700002272461',name:'KLASSISKE KØDBOLLER 500 G',pg:'ost-og-palaeg',fag:5,hylde:3,pos:188},
+  {ean:'5700002272485',name:'KYLLING-KALKUN KØDBOLLER 500 G',pg:'ost-og-palaeg',fag:5,hylde:3,pos:189},
+  {ean:'7300156586094',name:'XTRA KARTOFFELSALAT 1 KG',pg:'ost-og-palaeg',fag:5,hylde:4,pos:190},
+  {ean:'5701295293973',name:'GRAASTEN KARTOFFELSALAT PURLØG DILD 800G',pg:'ost-og-palaeg',fag:5,hylde:4,pos:191},
+  {ean:'5705900000055',name:'JENSENS KØKKEN BEARNAISE SAUCE 350 ML',pg:'ost-og-palaeg',fag:5,hylde:4,pos:192},
+  {ean:'5704000517616',name:'JENSENS KØKKEN BACON BEARNAISE 350 ML',pg:'ost-og-palaeg',fag:5,hylde:4,pos:193},
+  {ean:'5704000498649',name:'JENSENS KØKKEN FLÆSKESTEGSSAUCE 350 ML',pg:'ost-og-palaeg',fag:5,hylde:4,pos:194},
+  {ean:'5705900004206',name:'JENSENS KØKKEN ANDESAUCE 350 ML',pg:'ost-og-palaeg',fag:5,hylde:4,pos:195},
+  {ean:'5704000460929',name:'JENSENS KØKKEN FAVORIT SAUCE 250 ML',pg:'ost-og-palaeg',fag:5,hylde:4,pos:196},
+  {ean:'5701018044547',name:'K-SALAT BEARNAISE SAUCE 325 G',pg:'ost-og-palaeg',fag:5,hylde:4,pos:197},
+  {ean:'5745000172931',name:'JENSENS PULLED PORK 500 G',pg:'ost-og-palaeg',fag:5,hylde:5,pos:198},
+  {ean:'5740036001323',name:'JENSENS SPARERIBS BBQ 500 G',pg:'ost-og-palaeg',fag:5,hylde:5,pos:199},
+  {ean:'5705900033398',name:'JENSEN SPARERIBS 1250 G',pg:'ost-og-palaeg',fag:5,hylde:5,pos:200},
+  {ean:'5707490011077',name:'TIMS BRUNKAGEDEJ 300 G',pg:'ost-og-palaeg',fag:5,hylde:5,pos:201},
+  {ean:'5704080957036',name:'ØKO AALBÆK DELIKATE SKIVER CHORIZO 60 G',pg:'ost-og-palaeg',fag:6,hylde:1,pos:202},
+  {ean:'8008410582972',name:'PROSCIUTTO CRUDO 50 G',pg:'ost-og-palaeg',fag:6,hylde:1,pos:203},
+  {ean:'8008410596948',name:'SALAME DI MILANO 60 G',pg:'ost-og-palaeg',fag:6,hylde:1,pos:204},
+  {ean:'8008410697959',name:'PROSCIUTTO COTTO 70 G',pg:'ost-og-palaeg',fag:6,hylde:1,pos:205},
+  {ean:'80551065',name:'MORTADELLA BOLOGNA 70 G',pg:'ost-og-palaeg',fag:6,hylde:1,pos:206},
+  {ean:'8008410564527',name:'SALAME VENTRICINA 70 G',pg:'ost-og-palaeg',fag:6,hylde:1,pos:207},
+  {ean:'8008410748743',name:'ANTIPASTO CITTERIO 125 G',pg:'ost-og-palaeg',fag:6,hylde:1,pos:208},
+  {ean:'5704080956770',name:'AALBÆK LANDSBY SPEGPØLSE AALBÆK 60 G',pg:'ost-og-palaeg',fag:6,hylde:2,pos:209},
+  {ean:'5704080956787',name:'AALBÆK FENNIKEL SPEGEPØLSE 60 G',pg:'ost-og-palaeg',fag:6,hylde:2,pos:210},
+  {ean:'8411030051566',name:'CASA CZAJA CHORIZO 80 G',pg:'ost-og-palaeg',fag:6,hylde:2,pos:211},
+  {ean:'8411030051559',name:'CASA CZAJA SERRANO 60 G',pg:'ost-og-palaeg',fag:6,hylde:2,pos:212},
+  {ean:'8411030052181',name:'CASA CZAJA LOMO 50 G',pg:'ost-og-palaeg',fag:6,hylde:2,pos:213},
+  {ean:'8008410580862',name:'BRESAOLA 70 G',pg:'ost-og-palaeg',fag:6,hylde:2,pos:214},
+  {ean:'8008410555426',name:'PROSCIUTTO DI PARMA CITTERIO 70 G',pg:'ost-og-palaeg',fag:6,hylde:2,pos:215},
+  {ean:'8010817129414',name:'SALSICCIA KLASSISK 200 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:216},
+  {ean:'5410921016502',name:'HUMMUS NATURAL 200 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:217},
+  {ean:'5715569971184',name:'IRMA HUMMUS 200 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:218},
+  {ean:'5715569971368',name:'ØKO IRMA HUMMUS 175 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:219},
+  {ean:'5410921016519',name:'HUMMUS CHILI 175 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:220},
+  {ean:'5715569971344',name:'IRMA HUMMUS CHILI 200 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:221},
+  {ean:'5715569971177',name:'IRMA GRØN PESTO 140 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:222},
+  {ean:'5715569971221',name:'IRMA AIOLI 200 G',pg:'ost-og-palaeg',fag:6,hylde:3,pos:223},
+  {ean:'5715569975670',name:'COOP FLØDEKARTOFLER 600 G',pg:'ost-og-palaeg',fag:6,hylde:4,pos:224},
+  {ean:'5715569975663',name:'COOP FLØDEKARTOFLER MED RØD PEBER 600 G',pg:'ost-og-palaeg',fag:6,hylde:4,pos:225},
+  {ean:'5715348158485',name:'IRMA SURDEJSPIZZABUND 240 G',pg:'ost-og-palaeg',fag:6,hylde:4,pos:226},
+  {ean:'5715348158508',name:'IRMA FULDKORN SURDEJSPIZZABUND 240 G',pg:'ost-og-palaeg',fag:6,hylde:4,pos:227},
+  {ean:'5715348158461',name:'IRMA SURDEJSPIZZABUND 480 G 2 STK',pg:'ost-og-palaeg',fag:6,hylde:4,pos:228},
+  {ean:'5715348124794',name:'COOP MADPANDEKAGER 480 G',pg:'ost-og-palaeg',fag:6,hylde:5,pos:229},
+  {ean:'5715348124817',name:'COOP DESSERTPANDEKAGER 480 G',pg:'ost-og-palaeg',fag:6,hylde:5,pos:230},
+  {ean:'5715348124831',name:'COOP BRUNCH PANDEKAGER 240 G',pg:'ost-og-palaeg',fag:6,hylde:5,pos:231},
+  {ean:'7340191175433',name:'COOP CROISSANTDEJ 350 G',pg:'ost-og-palaeg',fag:6,hylde:5,pos:232},
+  {ean:'5710231003514',name:'FILODEJ 300 G',pg:'ost-og-palaeg',fag:6,hylde:5,pos:233},
+  {ean:'5709153099170',name:'COOP BUTTERDEJ 275 G',pg:'ost-og-palaeg',fag:6,hylde:5,pos:234},
+  {ean:'5410146401435',name:'DANNEROLLES CROISSANT 240 G 6 STK',pg:'ost-og-palaeg',fag:6,hylde:6,pos:235},
+  {ean:'5715348076130',name:'COOP PØLSEHORNSDEJ 325 G',pg:'ost-og-palaeg',fag:6,hylde:6,pos:236},
+  {ean:'5709153099125',name:'COOP PIZZADEJ 400 G',pg:'ost-og-palaeg',fag:6,hylde:6,pos:237},
+  {ean:'7340191176829',name:'COOP FULDKORNSPIZZADEJ 400 G',pg:'ost-og-palaeg',fag:6,hylde:6,pos:238},
+  {ean:'5709153099156',name:'COOP TÆRTEDEJ 275 G',pg:'ost-og-palaeg',fag:6,hylde:6,pos:239},
+  {ean:'5709153099163',name:'COOP FULDKORNSTÆRTEDEJ 275 G',pg:'ost-og-palaeg',fag:6,hylde:6,pos:240},
+  {ean:'3176580020169',name:'BRIE LAITIÉRE 200G',pg:'ost-og-palaeg',fag:7,hylde:1,pos:241},
+  {ean:'3228020232028',name:'PRÉSIDENT SPIDSBRIE 200 G',pg:'ost-og-palaeg',fag:7,hylde:1,pos:242},
+  {ean:'5709281008891',name:'PRÉS BRIE NATUR 125',pg:'ost-og-palaeg',fag:7,hylde:1,pos:243},
+  {ean:'5711953070266',name:'CASTELLO HVID 200 G',pg:'ost-og-palaeg',fag:7,hylde:1,pos:244},
+  {ean:'5740200001012',name:'CASTELLO BLÅ 150 G',pg:'ost-og-palaeg',fag:7,hylde:1,pos:245},
+  {ean:'5703985047354',name:'MAMMEN DANABLU 50+/30% 150G',pg:'ost-og-palaeg',fag:7,hylde:1,pos:246},
+  {ean:'5709464020351',name:'ØKO THISE DANABLUE 60+/36% 150 G',pg:'ost-og-palaeg',fag:7,hylde:1,pos:247},
+  {ean:'7340011493495',name:'COOP EMMENTALER 400 G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:248},
+  {ean:'8711842132669',name:'PRIMA DONNA RØD 220G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:249},
+  {ean:'7340191117990',name:'COOP RØD CHEDDAR BLOK 250 G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:250},
+  {ean:'3073780872331',name:'PORT SALUT 150G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:251},
+  {ean:'5701975801306',name:'ØKO THISE VESTERHAVOST 32% MIN 225 G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:252},
+  {ean:'5711953048739',name:'CASTELLO AGED HAVARTI 200 G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:253},
+  {ean:'5715569978190',name:'COOP GOUDA CHILI 200 G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:254},
+  {ean:'5703855101285',name:'GOUDA CREMET 200 G',pg:'ost-og-palaeg',fag:7,hylde:2,pos:255},
+  {ean:'5711953171628',name:'PUCK HVID OST 200 G',pg:'ost-og-palaeg',fag:7,hylde:3,pos:256},
+  {ean:'7340191119918',name:'ØKO 365 SALATTERN 365/150 G',pg:'ost-og-palaeg',fag:7,hylde:3,pos:257},
+  {ean:'7340191155824',name:'COOP SALATTERN 325/530 G',pg:'ost-og-palaeg',fag:7,hylde:3,pos:258},
+  {ean:'3523230038898',name:'GEDERULLE SOIGNON 180 G',pg:'ost-og-palaeg',fag:7,hylde:3,pos:259},
+  {ean:'8018731001274',name:'DELIZIA BURRATA 260/125 G',pg:'ost-og-palaeg',fag:7,hylde:3,pos:260},
+  {ean:'7340191179851',name:'COOP TOASTSKIVER 200 G',pg:'ost-og-palaeg',fag:7,hylde:3,pos:261},
+  {ean:'8001868011568',name:'GRAN CASTELLI REVET',pg:'ost-og-palaeg',fag:7,hylde:4,pos:262},
+  {ean:'7340191120136',name:'COOP GRANA PADANO 12 MDR 150 G',pg:'ost-og-palaeg',fag:7,hylde:4,pos:263},
+  {ean:'5715348002528',name:'COOP PARMIGIANO REGGIANO 24 M 200 G',pg:'ost-og-palaeg',fag:7,hylde:4,pos:264},
+  {ean:'7340191148284',name:'COOP MOZZARELLA KUGLE 210/125 G',pg:'ost-og-palaeg',fag:7,hylde:4,pos:265},
+  {ean:'7300156582096',name:'ØKO ÄNGLAMARK MOZZARELLA 240/125 G',pg:'ost-og-palaeg',fag:7,hylde:4,pos:266},
+  {ean:'5711953152405',name:'CHEASY REVET OST 13% 150 G',pg:'ost-og-palaeg',fag:7,hylde:5,pos:267},
+  {ean:'5760466817325',name:'KK REVET MOZZARELLA 400 G',pg:'ost-og-palaeg',fag:7,hylde:5,pos:268},
+  {ean:'7340191149762',name:'COOP REVET CHEDDAR RØD 150 G',pg:'ost-og-palaeg',fag:7,hylde:5,pos:269},
+  {ean:'5703855162231',name:'PIZZATOPPING 200 G',pg:'ost-og-palaeg',fag:7,hylde:5,pos:270},
+  {ean:'5701975804659',name:'ØKO THISE REVET OST 45+ 140 G',pg:'ost-og-palaeg',fag:7,hylde:6,pos:271},
+  {ean:'7340191167995',name:'COOP REVET MOZZARELLA 200G',pg:'ost-og-palaeg',fag:7,hylde:6,pos:272},
+  {ean:'7340191106321',name:'COOP GOUDA WEDGE 450 G',pg:'ost-og-palaeg',fag:7,hylde:6,pos:273},
+  {ean:'8021398256802',name:'GORGONZOLA DOLCE 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:274},
+  {ean:'4000339697908',name:'PHILADELPHIA NATUREL 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:275},
+  {ean:'5700419083360',name:'PHILADELPHIA NATUREL LIGHT 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:276},
+  {ean:'7622400969034',name:'PHILADELPHIA HVIDLØG/URTER 22% 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:277},
+  {ean:'5760466740999',name:'BUKO FLØDE NATUREL 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:278},
+  {ean:'5760466101240',name:'BUKO GUL PIKANT 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:279},
+  {ean:'5711953047596',name:'ØKO BUKO PIKANT 150 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:280},
+  {ean:'5711953140334',name:'BUKO SMELTEOST REJER 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:281},
+  {ean:'5711953140396',name:'BUKO SMELTEOST SKINKE 200 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:282},
+  {ean:'5760466745505',name:'BUKO GARLI 125 G',pg:'ost-og-palaeg',fag:8,hylde:1,pos:283},
+  {ean:'5701975803041',name:'ØKO THISE ML 30+ SKIVEOST 200 G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:284},
+  {ean:'5701975802235',name:'ØKO THISE LAGRET 45+ SKIVEOST 180 G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:285},
+  {ean:'5701975801467',name:'ØKO THISE FAMILIEOST MILD 45+ SK 200G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:286},
+  {ean:'5701975801160',name:'ØKO THISE ML 50+ SKIVEOST 200 G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:287},
+  {ean:'5760466956826',name:'CHEASY SK ML 13% 200 G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:288},
+  {ean:'7340191173163',name:'COOP GOUDA SKIVER 200G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:289},
+  {ean:'7340191164246',name:'COOP CHEDDAR I SKIVER 100 G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:290},
+  {ean:'3073781195323',name:'DEN LEENDE KO NATURAL 8P 133 G',pg:'ost-og-palaeg',fag:8,hylde:2,pos:291},
+  {ean:'5700383198305',name:'COOP MILD +30 DANBO SKIVEOST 16%',pg:'ost-og-palaeg',fag:8,hylde:3,pos:292},
+  {ean:'5700382973644',name:'COOP ML 45+ DANBO SKIVEOST 25%',pg:'ost-og-palaeg',fag:8,hylde:3,pos:293},
+  {ean:'5715569967897',name:'COOP DANBO XL SKIVEOST 200 G',pg:'ost-og-palaeg',fag:8,hylde:3,pos:294},
+  {ean:'5711953084676',name:'KLOVBORG SKIVER 45+ ML 240 G',pg:'ost-og-palaeg',fag:8,hylde:3,pos:295},
+  {ean:'5711953034053',name:'RIBERHUS 45+ MELLEMLAGRET SKIVER 240 G',pg:'ost-og-palaeg',fag:8,hylde:3,pos:296},
+  {ean:'5760466985437',name:'RIBERHUS 45+ XL SKIVER 200 G',pg:'ost-og-palaeg',fag:8,hylde:3,pos:297},
+  {ean:'5701975804765',name:'ØKO THISE DANBO 30+ ML MIN 462 G',pg:'ost-og-palaeg',fag:8,hylde:5,pos:298},
+  {ean:'5701975804789',name:'ØKO THISE DANBO 45+ ML 468 G',pg:'ost-og-palaeg',fag:8,hylde:5,pos:299},
+  {ean:'5701975804741',name:'ØKO THISE MILD GOUDA 28% MIN 432 G',pg:'ost-og-palaeg',fag:8,hylde:5,pos:300},
+  {ean:'7340011455554',name:'COOP DANBO ML 25% 45+ 650 G',pg:'ost-og-palaeg',fag:8,hylde:5,pos:301},
+  {ean:'7340011455561',name:'COOP DANBO ML KOMMEN 25% 45+ BGB 650 G',pg:'ost-og-palaeg',fag:8,hylde:5,pos:302},
+  {ean:'5715569954408',name:'COOP EKSTRA LAGRET DANBO 45+ MIN 500 G',pg:'ost-og-palaeg',fag:8,hylde:5,pos:303},
+  {ean:'7340011455585',name:'COOP GAMLE OLE EKSTRA LAGRET 610 G',pg:'ost-og-palaeg',fag:8,hylde:5,pos:304},
+  {ean:'5711953164668',name:'CHEASY SKÆREOST MILD MIN 495 G',pg:'ost-og-palaeg',fag:8,hylde:6,pos:305},
+  {ean:'5711953135033',name:'KLOVBORG ML 650 G',pg:'ost-og-palaeg',fag:8,hylde:6,pos:306},
+  {ean:'5711953161261',name:'RIBERHUS DANBO MELLEMLAGRET 45+ 468 G',pg:'ost-og-palaeg',fag:8,hylde:6,pos:307},
+  {ean:'5703985045015',name:'MAMMEN GULD ML 45+ 585 G',pg:'ost-og-palaeg',fag:8,hylde:6,pos:308},
+  {ean:'3073781189896',name:'CHEEZ DIPPERS NATURAL 5P 175 G',pg:'ost-og-palaeg',fag:8,hylde:6,pos:309},
+  {ean:'5760466748902',name:'LILLEBROR OSTEHAPS 18X18 G',pg:'ost-og-palaeg',fag:8,hylde:6,pos:310},
+  {ean:'5711953161698',name:'COOP FLØDEHAVARTI 400 G',pg:'ost-og-palaeg',fag:8,hylde:6,pos:311},
+];
+
+const eanMap = {};
+allProducts.forEach(p => { eanMap[p.ean] = p; });
+
+// ============ STATE ============
+let doneProducts = new Set();
+let scannerActive = false;
+let codeReader = null;
+
+// ============ STORAGE ============
+async function loadProgress() {
+  try {
+    const res = await window.storage.get('planogram-done');
+    if (res && res.value) doneProducts = new Set(JSON.parse(res.value));
+  } catch (e) {}
+  updateStats();
+}
+
+async function loadTheme() {
+  try {
+    const res = await window.storage.get('planogram-theme');
+    if (res && res.value) setTheme(res.value);
+    else {
+      const hour = new Date().getHours();
+      setTheme(hour >= 7 && hour < 19 ? 'light' : 'dark');
+    }
+  } catch (e) { setTheme('dark'); }
+}
+
+async function saveTheme(theme) {
+  try { await window.storage.set('planogram-theme', theme); } catch (e) {}
+}
+
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+  const cur = document.body.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  saveTheme(next);
+}
+
+// ============ BUILD UI ============
+function buildCategories() {
+  const container = document.getElementById('categoryContainer');
+  container.innerHTML = '';
+
+  const grouped = {};
+  Object.values(planograms).forEach(p => {
+    if (!grouped[p.category]) grouped[p.category] = [];
+    grouped[p.category].push(p);
+  });
+
+  const sortedCats = Object.keys(grouped).sort((a,b) => (categories[a]?.order||99) - (categories[b]?.order||99));
+
+  sortedCats.forEach(catKey => {
+    const cat = categories[catKey];
+    if (!cat) return;
+    const pgs = grouped[catKey].sort((a,b) => (a.number||'').localeCompare(b.number||''));
+
+    const available = pgs.filter(p => p.available).length;
+    const group = document.createElement('div');
+    group.className = 'category-group';
+    group.innerHTML = `
+      <div class="category-header">
+        <span class="category-icon">${cat.icon}</span>
+        <span class="category-name">${cat.name}</span>
+        <span class="category-count">${available}/${pgs.length} klar</span>
+      </div>
+      <div class="planogram-grid">
+        ${pgs.map(p => buildPlanogramCard(p)).join('')}
+      </div>
+    `;
+    container.appendChild(group);
+  });
+}
+
+function buildPlanogramCard(p) {
+  const isAvail = p.available;
+  const products = allProducts.filter(x => x.pg === p.id);
+  const done = products.filter(x => doneProducts.has(x.ean)).length;
+  const pct = products.length > 0 ? Math.round((done / products.length) * 100) : 0;
+
+  const meta = isAvail
+    ? `<div class="pg-meta">
+         <span class="pg-meta-item">📐 ${p.fags} fag</span>
+         <span class="pg-meta-item">📏 ${p.width}</span>
+       </div>`
+    : `<div class="pg-meta"><span class="pg-meta-item">⏳ Kommer snart</span></div>`;
+
+  const progress = isAvail
+    ? `<div style="display:flex;align-items:center;gap:6px">
+         <div class="pg-progress-mini"><div class="pg-progress-mini-fill" style="width:${pct}%"></div></div>
+         <span class="pg-progress-label">${pct}%</span>
+       </div>`
+    : '';
+
+  const clickHandler = isAvail ? `onclick="openPlanogram('${p.file}')"` : 'onclick="showNotReady()"';
+
+  return `
+    <div class="planogram-card ${isAvail?'available':'coming-soon'}" ${clickHandler}>
+      <div class="pg-header">
+        <div class="pg-number">${p.number}</div>
+        <div class="pg-status ${isAvail?'status-ready':'status-pending'}">
+          ${isAvail ? '✓ KLAR' : 'IKKE KLAR'}
+        </div>
+      </div>
+      <div class="pg-title">${p.title}</div>
+      <div class="pg-desc">${p.desc}</div>
+      <div class="pg-footer">
+        ${meta}
+        ${progress}
+      </div>
+    </div>
+  `;
+}
+
+function updateStats() {
+  const availableCount = Object.values(planograms).filter(p => p.available).length;
+  const totalProducts = allProducts.length;
+  const done = doneProducts.size;
+  const remaining = totalProducts - done;
+  const pct = totalProducts > 0 ? Math.round((done / totalProducts) * 100) : 0;
+
+  document.getElementById('statPlanograms').textContent = availableCount;
+  document.getElementById('statProducts').textContent = totalProducts;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statRemaining').textContent = remaining;
+  document.getElementById('overallText').textContent = pct + '%';
+  document.getElementById('overallFill').style.width = pct + '%';
+}
+
+// ============ NAVIGATION ============
+function openPlanogram(file) {
+  window.location.href = file;
+}
+
+function showNotReady() {
+  showToast('⏳ Dette planogram er ikke klar endnu', 'warning');
+}
+
+// ============ SEARCH ============
+let searchTimeout;
+document.getElementById('globalSearch').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => doSearch(this.value.trim()), 200);
+});
+
+document.getElementById('globalSearch').addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSearch();
+  if (e.key === 'Enter') {
+    const first = document.querySelector('.result-item');
+    if (first) first.click();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeSearch();
+    if (scannerActive) closeScanner();
+    closeInfo();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('globalSearch').focus();
+  }
+  if (e.key === 's' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    openScanner();
+  }
+});
+
+function doSearch(query) {
+  const overlay = document.getElementById('searchOverlay');
+  const list = document.getElementById('resultsList');
+  const label = document.getElementById('resultsLabel');
+
+  if (!query) { closeSearch(); return; }
+
+  const q = query.toLowerCase();
+
+  // Search products
+  const productMatches = allProducts.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.ean.includes(q)
+  );
+
+  // Search planograms
+  const pgMatches = Object.values(planograms).filter(p =>
+    p.available && (
+      p.title.toLowerCase().includes(q) ||
+      p.desc.toLowerCase().includes(q) ||
+      p.number.includes(q)
+    )
+  );
+
+  const total = productMatches.length + pgMatches.length;
+  label.textContent = `${total} resultater for "${query}"`;
+
+  if (total === 0) {
+    list.innerHTML = `<div class="no-results">🔍 Ingen resultater for "${query}"</div>`;
+  } else {
+    let html = '';
+
+    if (pgMatches.length > 0) {
+      html += '<div style="padding:8px 16px;font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--surface2)">📋 Planogrammer</div>';
+      pgMatches.forEach(pg => {
+        html += `
+          <div class="result-item" onclick="openPlanogram('${pg.file}')">
+            <div class="result-info">
+              <div class="result-planogram">Planogram ${pg.number}</div>
+              <div class="result-name">${highlightText(pg.title, query)}</div>
+              <div class="result-ean">${pg.desc}</div>
+            </div>
+            <div class="result-location">Åbn →</div>
+          </div>
+        `;
+      });
+    }
+
+    if (productMatches.length > 0) {
+      html += '<div style="padding:8px 16px;font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--surface2)">📦 Produkter</div>';
+      productMatches.slice(0, 25).forEach(p => {
+        const pg = planograms[p.pg];
+        const isDone = doneProducts.has(p.ean);
+        html += `
+          <div class="result-item" onclick="goToProduct('${p.ean}')">
+            <div class="result-info">
+              <div class="result-planogram">${pg.title} ${isDone?'· ✓ Færdig':''}</div>
+              <div class="result-name">${highlightText(p.name, query)}</div>
+              <div class="result-ean">${highlightText(p.ean, query)}</div>
+            </div>
+            <div class="result-location">Fag ${p.fag}<br>H${p.hylde} #${p.pos}</div>
+          </div>
+        `;
+      });
+      if (productMatches.length > 25) {
+        html += `<div style="padding:10px;text-align:center;font-size:12px;color:var(--text-dim)">... og ${productMatches.length - 25} flere</div>`;
+      }
+    }
+
+    list.innerHTML = html;
+  }
+
+  overlay.classList.add('visible');
+}
+
+function highlightText(text, query) {
+  const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(re, '<mark>$1</mark>');
+}
+
+function closeSearch() {
+  document.getElementById('searchOverlay').classList.remove('visible');
+  document.getElementById('globalSearch').value = '';
+}
+
+function goToProduct(ean) {
+  const p = eanMap[ean];
+  if (!p) return;
+  const pg = planograms[p.pg];
+  if (!pg || !pg.available) {
+    showToast('⏳ Dette planogram er ikke klar endnu', 'warning');
+    return;
+  }
+  // Pass EAN as URL hash so the planogram page can auto-select it
+  window.location.href = pg.file + '#ean=' + ean;
+}
+
+// ============ SCANNER ============
+async function openScanner() {
+  const modal = document.getElementById('scannerModal');
+  modal.classList.add('visible');
+  scannerActive = true;
+  document.getElementById('scannerStatus').textContent = 'Starter kamera...';
+
+  try {
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    const video = document.getElementById('scannerVideo');
+    const devices = await codeReader.listVideoInputDevices();
+    let deviceId = null;
+    const rear = devices.find(d => /back|rear|environment/i.test(d.label));
+    if (rear) deviceId = rear.deviceId;
+    else if (devices.length > 0) deviceId = devices[devices.length - 1].deviceId;
+
+    document.getElementById('scannerStatus').textContent = 'Ret kameraet mod stregkoden';
+
+    codeReader.decodeFromVideoDevice(deviceId, video, (result) => {
+      if (result && scannerActive) handleScan(result.getText());
+    });
+  } catch (e) {
+    document.getElementById('scannerStatus').textContent = '⚠️ Kan ikke tilgå kamera';
+  }
+}
+
+function closeScanner() {
+  scannerActive = false;
+  document.getElementById('scannerModal').classList.remove('visible');
+  if (codeReader) {
+    try { codeReader.reset(); } catch (e) {}
+    codeReader = null;
+  }
+}
+
+function handleScan(code) {
+  if (!scannerActive) return;
+  scannerActive = false;
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  playBeep();
+
+  const p = eanMap[code];
+  if (p) {
+    const pg = planograms[p.pg];
+    document.getElementById('scannerStatus').textContent = `✓ Fundet i ${pg.title}!`;
+    setTimeout(() => {
+      closeScanner();
+      goToProduct(code);
+    }, 600);
+  } else {
+    document.getElementById('scannerStatus').textContent = '❌ Ikke i butikken';
+    setTimeout(() => {
+      closeScanner();
+      showToast(`❌ EAN ${code} findes ikke i nogen planogram`, 'error');
+    }, 1000);
+  }
+}
+
+function manualEntry() {
+  closeScanner();
+  const ean = prompt('Indtast EAN-nummer:');
+  if (ean) handleScan(ean.trim());
+}
+
+// ============ AUDIO ============
+let audioCtx = null;
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 1200;
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch (e) {}
+}
+
+// ============ TOAST ============
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  const icons = { success: '✓', warning: '⚠️', error: '❌' };
+  document.getElementById('toastIcon').textContent = icons[type] || '📍';
+  document.getElementById('toastMsg').textContent = msg;
+  toast.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ============ INFO MODAL ============
+function showInfo() {
+  document.getElementById('infoModal').classList.add('visible');
+}
+
+function closeInfo() {
+  document.getElementById('infoModal').classList.remove('visible');
+}
+
+// ============ INIT ============
+async function init() {
+  await loadTheme();
+  await loadProgress();
+  buildCategories();
+}
+
+init();
+</script>
+</body>
+</html>
