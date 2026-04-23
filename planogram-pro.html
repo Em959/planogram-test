@@ -588,6 +588,32 @@
 
   .fag-mini-fill { height: 100%; background: var(--success); transition: width 0.3s; }
 
+  .fag-chevron {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .fag-section.collapsed .fag-chevron {
+    transform: rotate(-90deg);
+  }
+
+  .fag-header:hover .fag-chevron {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
   /* SHELVES */
   .shelf-container {
     padding: 12px 14px;
@@ -661,17 +687,6 @@
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
 
-  .product-card.done {
-    opacity: 0.55;
-    background: var(--success-soft);
-    border-color: var(--success);
-  }
-
-  .product-card.done .product-name {
-    text-decoration: line-through;
-    text-decoration-color: var(--success);
-  }
-
   .product-card.is-new::before {
     content: 'NY';
     position: absolute;
@@ -688,22 +703,337 @@
     z-index: 2;
   }
 
-  .product-card.done::after {
-    content: '✓';
+  /* Check button on card */
+  .card-check {
     position: absolute;
-    top: -6px;
-    left: -6px;
-    background: var(--success);
-    color: #fff;
-    width: 18px;
-    height: 18px;
+    top: 5px;
+    left: 5px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    font-size: 11px;
-    font-weight: 800;
+    background: var(--surface);
+    border: 2px solid var(--border-strong);
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2;
+    font-size: 12px;
+    font-weight: 800;
+    color: transparent;
+    transition: all 0.15s;
+    z-index: 3;
+  }
+
+  .card-check:hover {
+    border-color: var(--success);
+    background: var(--success-soft);
+    transform: scale(1.1);
+  }
+
+  .product-card.done .card-check {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+  }
+
+  .product-card.done {
+    opacity: 0.55;
+    background: var(--success-soft);
+    border-color: var(--success);
+  }
+
+  .product-card.done .product-name {
+    text-decoration: line-through;
+    text-decoration-color: var(--success);
+  }
+
+  .product-card.done::after {
+    display: none;
+  }
+
+  /* PRODUCT MODAL */
+  .product-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1500;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .product-modal.visible { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .product-modal-content {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    max-width: 420px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+    animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .pm-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    z-index: 10;
+    transition: all 0.15s;
+  }
+
+  .pm-close:hover {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  .pm-image-wrap {
+    width: 100%;
+    aspect-ratio: 1;
+    max-height: 300px;
+    background: linear-gradient(135deg, var(--surface2), var(--surface3));
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pm-image-wrap img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    padding: 20px;
+  }
+
+  .pm-image-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .pm-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .pm-no-image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-faint);
+    text-align: center;
+    padding: 20px;
+  }
+
+  .pm-no-image-icon {
+    font-size: 48px;
+    opacity: 0.5;
+  }
+
+  .pm-no-image-text {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .pm-body {
+    padding: 20px;
+  }
+
+  .pm-tags {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .pm-tag {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .pm-tag-new {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid var(--success);
+  }
+
+  .pm-tag-done {
+    background: var(--success);
+    color: #fff;
+  }
+
+  .pm-name {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+
+  .pm-ean {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  .pm-location {
+    background: linear-gradient(135deg, var(--accent-soft), transparent);
+    border: 1.5px solid var(--accent);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .pm-location-main {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 0.03em;
+  }
+
+  .pm-location-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  .pm-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .pm-detail {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .pm-detail-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+
+  .pm-detail-value {
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .pm-replacement {
+    padding: 10px 12px;
+    background: var(--success-soft);
+    border: 1px solid var(--success);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--success);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .pm-replacement strong {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .pm-done-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--success);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.15s;
+  }
+
+  .pm-done-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(74,222,128,0.3); }
+
+  .pm-done-btn.done {
+    background: var(--surface3);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .pm-off-link {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+
+  .pm-off-link a {
+    color: var(--text-dim);
+    text-decoration: none;
   }
 
   @keyframes pulse {
@@ -1093,6 +1423,7 @@
   <button class="filter-chip new-style" onclick="setFilter('new', this)">🆕 Kun nye</button>
   <button class="filter-chip remaining-style" onclick="setFilter('remaining', this)">⏳ Mangler</button>
   <button class="filter-chip" onclick="setFilter('done', this)">✓ Færdige</button>
+  <button class="filter-chip" onclick="expandAllFags()" title="Åbn alle fag">📂 Åbn alle</button>
   <span class="kb-hint" style="margin-left:auto;align-self:center"><kbd>Ctrl+K</kbd> søg · <kbd>S</kbd> scan · <kbd>Esc</kbd> luk</span>
 </div>
 
@@ -1102,11 +1433,6 @@
   <aside class="sidebar">
     <h2>Hurtig navigation</h2>
     <div class="fag-nav" id="fagNav"></div>
-
-    <div class="detail-panel" id="detailPanel">
-      <div class="detail-title">📦 Produkt detaljer</div>
-      <div id="detailContent"></div>
-    </div>
 
     <div class="reset-menu">
       <button class="btn-reset" onclick="resetProgress()">🗑️ Nulstil fremgang</button>
@@ -1148,6 +1474,20 @@
 <div class="toast" id="toast">
   <span id="toastIcon">📍</span>
   <span id="toastMsg">Markeret</span>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="product-modal" id="productModal" onclick="closeProductModal(event)">
+  <div class="product-modal-content" onclick="event.stopPropagation()">
+    <button class="pm-close" onclick="closeProductModal()">✕</button>
+    <div class="pm-image-wrap" id="pmImageWrap">
+      <div class="pm-image-loading">
+        <div class="pm-spinner"></div>
+        <span>Indlæser billede...</span>
+      </div>
+    </div>
+    <div class="pm-body" id="pmBody"></div>
+  </div>
 </div>
 
 <script>
@@ -1626,6 +1966,7 @@ function buildFagSection(fagNum, prods) {
         ${newBadge}
         <div class="fag-mini-progress"><div class="fag-mini-fill" id="fag-fill-${fagNum}" style="width:${pct}%"></div></div>
         <span class="badge badge-accent" id="fag-count-${fagNum}">${done}/${prods.length}</span>
+        <div class="fag-chevron">▼</div>
       </div>
     </div>
     <div class="shelf-container" id="fag-body-${fagNum}">
@@ -1672,7 +2013,8 @@ function buildProductCard(p) {
   return `
     <div class="${classes.join(' ')}"
          id="card-${p.ean}"
-         onclick="selectProduct('${p.ean}')">
+         onclick="openProductModal('${p.ean}')">
+      <div class="card-check" onclick="event.stopPropagation(); toggleDone('${p.ean}')" title="Markér som færdig">✓</div>
       <div class="product-pos">#${p.pos}</div>
       <div class="product-name">${p.name}</div>
       <div class="product-ean">${p.ean}</div>
@@ -1712,14 +2054,30 @@ function updateProgress() {
 // ============ FAG TOGGLE ============
 const collapsedFags = new Set();
 function toggleFag(f) {
+  const section = document.getElementById(`fag-section-${f}`);
   const body = document.getElementById(`fag-body-${f}`);
+  if (!section || !body) return;
+
   if (collapsedFags.has(f)) {
     body.style.display = '';
+    section.classList.remove('collapsed');
     collapsedFags.delete(f);
   } else {
     body.style.display = 'none';
+    section.classList.add('collapsed');
     collapsedFags.add(f);
   }
+}
+
+// Expand all fags
+function expandAllFags() {
+  for (let f = 1; f <= 8; f++) {
+    const section = document.getElementById(`fag-section-${f}`);
+    const body = document.getElementById(`fag-body-${f}`);
+    if (body) body.style.display = '';
+    if (section) section.classList.remove('collapsed');
+  }
+  collapsedFags.clear();
 }
 
 // ============ NAVIGATION ============
@@ -1727,56 +2085,157 @@ function scrollToFag(f) {
   document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
   const nav = document.getElementById(`nav-fag-${f}`);
   if (nav) nav.classList.add('active');
+
+  // Auto-expand if collapsed
+  if (collapsedFags.has(f)) {
+    toggleFag(f);
+  }
+
   const section = document.getElementById(`fag-section-${f}`);
   if (section) section.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
-// ============ SELECT PRODUCT ============
+// ============ SELECT PRODUCT (legacy - opens modal) ============
 function selectProduct(ean) {
+  openProductModal(ean);
+  closeSearch();
+}
+
+// ============ PRODUCT MODAL WITH IMAGE ============
+const imageCache = {};
+
+async function openProductModal(ean) {
+  const p = eanMap[ean];
+  if (!p) return;
+
+  // Deselect previous
   if (selectedEAN) {
     const prev = document.getElementById(`card-${selectedEAN}`);
     if (prev) prev.classList.remove('selected');
   }
   selectedEAN = ean;
+
+  // Auto-expand fag if collapsed
+  if (collapsedFags.has(p.fag)) toggleFag(p.fag);
+
+  // Scroll card into view and highlight
   const card = document.getElementById(`card-${ean}`);
   if (card) {
     card.classList.add('selected');
     card.scrollIntoView({behavior: 'smooth', block: 'center'});
   }
 
-  const p = eanMap[ean];
-  if (!p) return;
+  // Update sidebar nav
+  document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
+  const nav = document.getElementById(`nav-fag-${p.fag}`);
+  if (nav) nav.classList.add('active');
 
-  const panel = document.getElementById('detailPanel');
-  const content = document.getElementById('detailContent');
-  panel.classList.add('visible');
+  const modal = document.getElementById('productModal');
+  const imageWrap = document.getElementById('pmImageWrap');
+  const body = document.getElementById('pmBody');
 
   const isNew = newEANs.has(p.ean);
   const isDone = doneProducts.has(p.ean);
   const replacementNote = replacements[p.ean];
 
-  content.innerHTML = `
-    <div class="location-badge">
-      <div class="loc-main">Fag ${p.fag} · Hylde ${p.hylde}</div>
-      <div class="loc-sub">Position #${p.pos} · Notch ${p.notch}</div>
+  let tagsHtml = '';
+  if (isNew) tagsHtml += '<span class="pm-tag pm-tag-new">✦ NY VARE</span>';
+  if (isDone) tagsHtml += '<span class="pm-tag pm-tag-done">✓ FÆRDIG</span>';
+
+  body.innerHTML = `
+    ${tagsHtml ? `<div class="pm-tags">${tagsHtml}</div>` : ''}
+    <div class="pm-name">${p.name}</div>
+    <div class="pm-ean">EAN: ${p.ean}</div>
+
+    <div class="pm-location">
+      <div class="pm-location-main">Fag ${p.fag} · Hylde ${p.hylde}</div>
+      <div class="pm-location-sub">Position #${p.pos} · Notch ${p.notch}</div>
     </div>
-    <div class="detail-row"><span class="label">Navn</span><span class="val" style="font-family:inherit;font-size:11px">${p.name}</span></div>
-    <div class="detail-row"><span class="label">EAN</span><span class="val">${p.ean}</span></div>
-    <div class="detail-row"><span class="label">Kolli</span><span class="val">${p.koli}</span></div>
-    <div class="detail-row"><span class="label">Facings</span><span class="val">${p.facings}</span></div>
-    ${isNew ? '<div style="margin-top:8px;padding:7px 11px;background:var(--success-soft);border:1px solid var(--success);border-radius:8px;font-size:11px;color:var(--success);text-align:center;font-weight:700">✦ NY vare i dette planogram</div>' : ''}
-    ${replacementNote ? `<div class="replacement-info"><strong>🔄 Info</strong>${replacementNote}</div>` : ''}
-    <button class="btn-mark-done ${isDone?'done':''}" onclick="toggleDone('${p.ean}')">
-      ${isDone ? '✓ Markeret færdig (fortryd)' : '✓ Markér som færdig'}
+
+    <div class="pm-details">
+      <div class="pm-detail">
+        <div class="pm-detail-label">Kolli</div>
+        <div class="pm-detail-value">${p.koli}</div>
+      </div>
+      <div class="pm-detail">
+        <div class="pm-detail-label">Facings</div>
+        <div class="pm-detail-value">${p.facings}</div>
+      </div>
+    </div>
+
+    ${replacementNote ? `<div class="pm-replacement"><strong>🔄 Info</strong>${replacementNote}</div>` : ''}
+
+    <button class="pm-done-btn ${isDone?'done':''}" onclick="toggleDoneFromModal('${p.ean}')">
+      ${isDone ? '↩️ Fortryd markering' : '✓ Markér som færdig'}
     </button>
+
+    <div class="pm-off-link">Billeder fra <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a></div>
   `;
 
-  document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
-  const nav = document.getElementById(`nav-fag-${p.fag}`);
-  if (nav) nav.classList.add('active');
+  modal.classList.add('visible');
 
-  closeSearch();
-  showToast(`📍 Fag ${p.fag} · Hylde ${p.hylde} · Pos #${p.pos}`, 'success');
+  // Reset image to loading
+  imageWrap.innerHTML = `
+    <div class="pm-image-loading">
+      <div class="pm-spinner"></div>
+      <span>Indlæser billede...</span>
+    </div>
+  `;
+
+  await loadProductImage(p.ean, imageWrap);
+}
+
+async function loadProductImage(ean, imageWrap) {
+  if (imageCache[ean] !== undefined) {
+    renderProductImage(imageCache[ean], imageWrap);
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${ean}.json?fields=image_front_url,image_url`);
+    if (!response.ok) throw new Error('Not found');
+    const data = await response.json();
+    const imageUrl = data.product?.image_front_url || data.product?.image_url || null;
+    imageCache[ean] = imageUrl;
+    renderProductImage(imageUrl, imageWrap);
+  } catch (e) {
+    imageCache[ean] = null;
+    renderProductImage(null, imageWrap);
+  }
+}
+
+function renderProductImage(url, imageWrap) {
+  if (url) {
+    const img = new Image();
+    img.onload = () => {
+      imageWrap.innerHTML = '';
+      imageWrap.appendChild(img);
+    };
+    img.onerror = () => renderNoImage(imageWrap);
+    img.src = url;
+    img.alt = 'Produkt';
+  } else {
+    renderNoImage(imageWrap);
+  }
+}
+
+function renderNoImage(imageWrap) {
+  imageWrap.innerHTML = `
+    <div class="pm-no-image">
+      <div class="pm-no-image-icon">📦</div>
+      <div class="pm-no-image-text">Intet billede tilgængeligt</div>
+    </div>
+  `;
+}
+
+function closeProductModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('productModal').classList.remove('visible');
+}
+
+function toggleDoneFromModal(ean) {
+  toggleDone(ean);
+  setTimeout(() => openProductModal(ean), 60);
 }
 
 // ============ TOGGLE DONE ============
@@ -1796,8 +2255,6 @@ function toggleDone(ean) {
   saveProgress();
   updateProgress();
   updateAllCards();
-  // Re-render detail panel
-  if (selectedEAN === ean) selectProduct(ean);
 }
 
 // ============ SEARCH ============
@@ -1819,6 +2276,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeSearch();
     if (scannerActive) closeScanner();
+    document.getElementById('productModal').classList.remove('visible');
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault();
@@ -2063,6 +2521,14 @@ async function init() {
   for (let f = 1; f <= 8; f++) {
     const s = document.getElementById(`fag-section-${f}`);
     if (s) observer.observe(s);
+  }
+
+  // Check URL hash for product selection (when coming from hub)
+  if (window.location.hash && window.location.hash.startsWith('#ean=')) {
+    const ean = window.location.hash.substring(5);
+    setTimeout(() => {
+      if (eanMap[ean]) selectProduct(ean);
+    }, 300);
   }
 }
 
