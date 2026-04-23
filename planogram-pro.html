@@ -2442,10 +2442,25 @@ let expiryDates = {}; // { ean: [{ date: '2026-04-30', qty: 3 }, ...] }
 let scannerActive = false;
 let codeReader = null;
 
-// ============ STORAGE ============
+// ============ STORAGE (localStorage wrapper for GitHub Pages) ============
+const storage = {
+  get(key) {
+    try {
+      const val = localStorage.getItem(key);
+      return val ? { value: val } : null;
+    } catch (e) { return null; }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) { return false; }
+  }
+};
+
 async function loadProgress() {
   try {
-    const res = await window.storage.get('planogram-done');
+    const res = storage.get('planogram-done');
     if (res && res.value) {
       doneProducts = new Set(JSON.parse(res.value));
     }
@@ -2458,13 +2473,13 @@ async function loadProgress() {
 
 async function saveProgress() {
   try {
-    await window.storage.set('planogram-done', JSON.stringify([...doneProducts]));
+    storage.set('planogram-done', JSON.stringify([...doneProducts]));
   } catch (e) { console.error(e); }
 }
 
 async function loadExpiryDates() {
   try {
-    const res = await window.storage.get('planogram-expiry');
+    const res = storage.get('planogram-expiry');
     if (res && res.value) {
       expiryDates = JSON.parse(res.value);
     }
@@ -2473,13 +2488,13 @@ async function loadExpiryDates() {
 
 async function saveExpiryDates() {
   try {
-    await window.storage.set('planogram-expiry', JSON.stringify(expiryDates));
+    storage.set('planogram-expiry', JSON.stringify(expiryDates));
   } catch (e) { console.error(e); }
 }
 
 async function loadTheme() {
   try {
-    const res = await window.storage.get('planogram-theme');
+    const res = storage.get('planogram-theme');
     if (res && res.value) {
       setTheme(res.value);
     } else {
@@ -2493,7 +2508,7 @@ async function loadTheme() {
 }
 
 async function saveTheme(theme) {
-  try { await window.storage.set('planogram-theme', theme); } catch (e) {}
+  try { storage.set('planogram-theme', theme); } catch (e) {}
 }
 
 function setTheme(theme) {

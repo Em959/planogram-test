@@ -1396,10 +1396,25 @@ let doneProducts = new Set();
 let scannerActive = false;
 let codeReader = null;
 
-// ============ STORAGE ============
+// ============ STORAGE (localStorage for GitHub Pages) ============
+const storage = {
+  get(key) {
+    try {
+      const val = localStorage.getItem(key);
+      return val ? { value: val } : null;
+    } catch (e) { return null; }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) { return false; }
+  }
+};
+
 async function loadProgress() {
   try {
-    const res = await window.storage.get('planogram-done');
+    const res = storage.get('planogram-done');
     if (res && res.value) doneProducts = new Set(JSON.parse(res.value));
   } catch (e) {}
   updateStats();
@@ -1407,7 +1422,7 @@ async function loadProgress() {
 
 async function loadTheme() {
   try {
-    const res = await window.storage.get('planogram-theme');
+    const res = storage.get('planogram-theme');
     if (res && res.value) setTheme(res.value);
     else {
       const hour = new Date().getHours();
@@ -1417,7 +1432,7 @@ async function loadTheme() {
 }
 
 async function saveTheme(theme) {
-  try { await window.storage.set('planogram-theme', theme); } catch (e) {}
+  try { storage.set('planogram-theme', theme); } catch (e) {}
 }
 
 function setTheme(theme) {
