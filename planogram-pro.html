@@ -1313,6 +1313,9 @@
     margin-top: 6px;
     color: var(--text-faint);
   }
+
+  /* PRODUCT MODAL */
+  .product-modal {
     display: none;
     position: fixed;
     inset: 0;
@@ -2874,143 +2877,158 @@ function selectProduct(ean) {
 const imageCache = {};
 
 async function openProductModal(ean) {
-  const p = eanMap[ean];
-  if (!p) return;
+  try {
+    const p = eanMap[ean];
+    if (!p) {
+      console.error('Product not found:', ean);
+      return;
+    }
 
-  // Deselect previous
-  if (selectedEAN) {
-    const prev = document.getElementById(`card-${selectedEAN}`);
-    if (prev) prev.classList.remove('selected');
-  }
-  selectedEAN = ean;
+    // Deselect previous
+    if (selectedEAN) {
+      const prev = document.getElementById(`card-${selectedEAN}`);
+      if (prev) prev.classList.remove('selected');
+    }
+    selectedEAN = ean;
 
-  // Auto-expand fag if collapsed
-  if (collapsedFags.has(p.fag)) toggleFag(p.fag);
+    // Auto-expand fag if collapsed
+    if (collapsedFags.has(p.fag)) toggleFag(p.fag);
 
-  // Scroll card into view and highlight
-  const card = document.getElementById(`card-${ean}`);
-  if (card) {
-    card.classList.add('selected');
-    card.scrollIntoView({behavior: 'smooth', block: 'center'});
-  }
+    // Scroll card into view and highlight
+    const card = document.getElementById(`card-${ean}`);
+    if (card) {
+      card.classList.add('selected');
+      card.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
 
-  // Update sidebar nav
-  document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
-  const nav = document.getElementById(`nav-fag-${p.fag}`);
-  if (nav) nav.classList.add('active');
+    // Update sidebar nav
+    document.querySelectorAll('.fag-nav-btn').forEach(b => b.classList.remove('active'));
+    const nav = document.getElementById(`nav-fag-${p.fag}`);
+    if (nav) nav.classList.add('active');
 
-  const modal = document.getElementById('productModal');
-  const imageWrap = document.getElementById('pmImageWrap');
-  const body = document.getElementById('pmBody');
+    const modal = document.getElementById('productModal');
+    const imageWrap = document.getElementById('pmImageWrap');
+    const body = document.getElementById('pmBody');
 
-  const isNew = newEANs.has(p.ean);
-  const isDone = doneProducts.has(p.ean);
-  const replacementNote = replacements[p.ean];
+    if (!modal || !imageWrap || !body) {
+      console.error('Modal elements not found');
+      return;
+    }
 
-  let tagsHtml = '';
-  if (isNew) tagsHtml += '<span class="pm-tag pm-tag-new">✦ NY VARE</span>';
-  if (isDone) tagsHtml += '<span class="pm-tag pm-tag-done">✓ FÆRDIG</span>';
+    const isNew = newEANs.has(p.ean);
+    const isDone = doneProducts.has(p.ean);
+    const replacementNote = replacements[p.ean];
 
-  // Build expiry section
-  const expiryList = expiryDates[p.ean] || [];
-  let expiryHtml = '';
-  let discountHtml = '';
+    let tagsHtml = '';
+    if (isNew) tagsHtml += '<span class="pm-tag pm-tag-new">✦ NY VARE</span>';
+    if (isDone) tagsHtml += '<span class="pm-tag pm-tag-done">✓ FÆRDIG</span>';
 
-  if (expiryList.length > 0) {
-    const closest = getExpiryStatus(p.ean);
-    const suggestion = getDiscountSuggestion(closest.days);
-    if (suggestion) {
-      discountHtml = `
-        <div class="pm-discount-suggestion ${suggestion.level}">
-          <div class="pm-discount-title">
-            <span>💰</span>
-            <span>Automatisk anbefaling</span>
+    // Build expiry section
+    const expiryList = (expiryDates && expiryDates[p.ean]) ? expiryDates[p.ean] : [];
+    let discountHtml = '';
+
+    if (expiryList.length > 0) {
+      const closest = getExpiryStatus(p.ean);
+      const suggestion = getDiscountSuggestion(closest.days);
+      if (suggestion) {
+        discountHtml = `
+          <div class="pm-discount-suggestion ${suggestion.level}">
+            <div class="pm-discount-title">
+              <span>💰</span>
+              <span>Automatisk anbefaling</span>
+            </div>
+            <div class="pm-discount-text">
+              ${suggestion.text} <strong>${suggestion.strong}</strong>
+            </div>
           </div>
-          <div class="pm-discount-text">
-            ${suggestion.text} <strong>${suggestion.strong}</strong>
+        `;
+      }
+    }
+
+    const expiryItems = expiryList.map(d => {
+      const days = getDaysUntil(d.date);
+      let cls = 'ok';
+      let dayLabel = `${days} dage`;
+      if (days < 0) { cls = 'danger'; dayLabel = `Udløbet for ${Math.abs(days)}d siden`; }
+      else if (days === 0) { cls = 'danger'; dayLabel = 'I dag'; }
+      else if (days === 1) { cls = 'danger'; dayLabel = 'I morgen'; }
+      else if (days <= 7) { cls = 'warning'; }
+      const rowClass = cls === 'danger' ? 'danger' : (cls === 'warning' ? 'warning' : '');
+      return `
+        <div class="pm-expiry-item ${rowClass}">
+          <div class="pm-expiry-item-date">${formatDate(d.date)}</div>
+          <div class="pm-expiry-item-info">
+            <span class="pm-expiry-days ${cls}">${dayLabel}</span>
+            <button class="pm-expiry-remove" onclick="removeExpiryDate('${p.ean}', '${d.date}')" title="Fjern">✕</button>
           </div>
         </div>
       `;
-    }
-  }
+    }).join('');
 
-  const expiryItems = expiryList.map(d => {
-    const days = getDaysUntil(d.date);
-    let cls = 'ok';
-    let dayLabel = `${days} dage`;
-    if (days < 0) { cls = 'danger'; dayLabel = `Udløbet for ${Math.abs(days)}d siden`; }
-    else if (days === 0) { cls = 'danger'; dayLabel = 'I dag'; }
-    else if (days === 1) { cls = 'danger'; dayLabel = 'I morgen'; }
-    else if (days <= 7) { cls = 'warning'; }
-    const rowClass = cls === 'danger' ? 'danger' : (cls === 'warning' ? 'warning' : '');
-    return `
-      <div class="pm-expiry-item ${rowClass}">
-        <div class="pm-expiry-item-date">${formatDate(d.date)}</div>
-        <div class="pm-expiry-item-info">
-          <span class="pm-expiry-days ${cls}">${dayLabel}</span>
-          <button class="pm-expiry-remove" onclick="removeExpiryDate('${p.ean}', '${d.date}')" title="Fjern">✕</button>
+    // Min date for input: today
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Safely escape name and ean for HTML
+    const safeName = String(p.name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    body.innerHTML = `
+      ${tagsHtml ? `<div class="pm-tags">${tagsHtml}</div>` : ''}
+      <div class="pm-name">${safeName}</div>
+      <div class="pm-ean">EAN: ${p.ean}</div>
+
+      <div class="pm-location">
+        <div class="pm-location-main">Fag ${p.fag} · Hylde ${p.hylde}</div>
+        <div class="pm-location-sub">Position #${p.pos} · Notch ${p.notch}</div>
+      </div>
+
+      <div class="pm-details">
+        <div class="pm-detail">
+          <div class="pm-detail-label">Kolli</div>
+          <div class="pm-detail-value">${p.koli}</div>
+        </div>
+        <div class="pm-detail">
+          <div class="pm-detail-label">Facings</div>
+          <div class="pm-detail-value">${p.facings}</div>
         </div>
       </div>
+
+      ${replacementNote ? `<div class="pm-replacement"><strong>🔄 Info</strong>${replacementNote}</div>` : ''}
+
+      <button class="pm-done-btn ${isDone?'done':''}" onclick="toggleDoneFromModal('${p.ean}')">
+        ${isDone ? '↩️ Fortryd markering' : '✓ Markér som færdig'}
+      </button>
+
+      <div class="pm-expiry-section">
+        <div class="pm-expiry-title">
+          <span>📅</span>
+          <span>Udløbsdatoer</span>
+        </div>
+        ${expiryItems ? `<div class="pm-expiry-list">${expiryItems}</div>` : '<div style="font-size:11px;color:var(--text-faint);margin-bottom:10px;text-align:center">Ingen datoer registreret</div>'}
+        <div class="pm-expiry-input">
+          <input type="date" id="expiryDateInput-${p.ean}" min="${todayStr}" />
+          <button onclick="handleAddExpiry('${p.ean}')">➕ Tilføj</button>
+        </div>
+        ${discountHtml}
+      </div>
+
+      <div class="pm-off-link">Billeder fra <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a></div>
     `;
-  }).join('');
 
-  // Min date for input: today
-  const todayStr = new Date().toISOString().split('T')[0];
+    modal.classList.add('visible');
 
-  body.innerHTML = `
-    ${tagsHtml ? `<div class="pm-tags">${tagsHtml}</div>` : ''}
-    <div class="pm-name">${p.name}</div>
-    <div class="pm-ean">EAN: ${p.ean}</div>
-
-    <div class="pm-location">
-      <div class="pm-location-main">Fag ${p.fag} · Hylde ${p.hylde}</div>
-      <div class="pm-location-sub">Position #${p.pos} · Notch ${p.notch}</div>
-    </div>
-
-    <div class="pm-details">
-      <div class="pm-detail">
-        <div class="pm-detail-label">Kolli</div>
-        <div class="pm-detail-value">${p.koli}</div>
+    // Reset image to loading
+    imageWrap.innerHTML = `
+      <div class="pm-image-loading">
+        <div class="pm-spinner"></div>
+        <span>Indlæser billede...</span>
       </div>
-      <div class="pm-detail">
-        <div class="pm-detail-label">Facings</div>
-        <div class="pm-detail-value">${p.facings}</div>
-      </div>
-    </div>
+    `;
 
-    ${replacementNote ? `<div class="pm-replacement"><strong>🔄 Info</strong>${replacementNote}</div>` : ''}
-
-    <button class="pm-done-btn ${isDone?'done':''}" onclick="toggleDoneFromModal('${p.ean}')">
-      ${isDone ? '↩️ Fortryd markering' : '✓ Markér som færdig'}
-    </button>
-
-    <div class="pm-expiry-section">
-      <div class="pm-expiry-title">
-        <span>📅</span>
-        <span>Udløbsdatoer</span>
-      </div>
-      ${expiryItems ? `<div class="pm-expiry-list">${expiryItems}</div>` : '<div style="font-size:11px;color:var(--text-faint);margin-bottom:10px;text-align:center">Ingen datoer registreret</div>'}
-      <div class="pm-expiry-input">
-        <input type="date" id="expiryDateInput-${p.ean}" min="${todayStr}" />
-        <button onclick="handleAddExpiry('${p.ean}')">➕ Tilføj</button>
-      </div>
-      ${discountHtml}
-    </div>
-
-    <div class="pm-off-link">Billeder fra <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a></div>
-  `;
-
-  modal.classList.add('visible');
-
-  // Reset image to loading
-  imageWrap.innerHTML = `
-    <div class="pm-image-loading">
-      <div class="pm-spinner"></div>
-      <span>Indlæser billede...</span>
-    </div>
-  `;
-
-  await loadProductImage(p.ean, imageWrap);
+    await loadProductImage(p.ean, imageWrap);
+  } catch (err) {
+    console.error('Error in openProductModal:', err);
+    alert('Fejl ved åbning af produkt: ' + err.message);
+  }
 }
 
 function handleAddExpiry(ean) {
