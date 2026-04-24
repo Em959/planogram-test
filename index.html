@@ -6,6 +6,31 @@
 <title>Butikken · Planogrammer</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@zxing/library@0.21.0/umd/index.min.js"></script>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDbDkK7dw2h-ev7HWR4FTkUv1K3sdxO93g",
+    authDomain: "planogram-citysp2.firebaseapp.com",
+    projectId: "planogram-citysp2",
+    storageBucket: "planogram-citysp2.firebasestorage.app",
+    messagingSenderId: "368892042986",
+    appId: "1:368892042986:web:5c12107dc73275fefc8193"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.firebaseDB = db;
+  window.firebaseDoc = doc;
+  window.firebaseOnSnapshot = onSnapshot;
+  window.firebaseReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
   :root {
     --bg: #0a0c10;
@@ -1396,8 +1421,8 @@ let doneProducts = new Set();
 let scannerActive = false;
 let codeReader = null;
 
-// ============ STORAGE (localStorage for GitHub Pages) ============
-const storage = {
+// ============ STORAGE (Firebase + localStorage fallback) ============
+const localCache = {
   get(key) {
     try {
       const val = localStorage.getItem(key);
@@ -1405,24 +1430,52 @@ const storage = {
     } catch (e) { return null; }
   },
   set(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (e) { return false; }
+    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
   }
 };
 
+function waitForFirebase(timeout = 5000) {
+  return new Promise((resolve) => {
+    if (window.firebaseReady) { resolve(true); return; }
+    let done = false;
+    window.addEventListener('firebase-ready', () => {
+      if (!done) { done = true; resolve(true); }
+    }, { once: true });
+    setTimeout(() => { if (!done) { done = true; resolve(false); } }, timeout);
+  });
+}
+
 async function loadProgress() {
+  // Load from local cache first
   try {
-    const res = storage.get('planogram-done');
+    const res = localCache.get('planogram-done');
     if (res && res.value) doneProducts = new Set(JSON.parse(res.value));
   } catch (e) {}
   updateStats();
+
+  // Then listen to Firebase for live updates
+  const ready = await waitForFirebase();
+  if (ready) {
+    try {
+      const docRef = window.firebaseDoc(window.firebaseDB, 'planogram-data', 'ost-og-palaeg');
+      window.firebaseOnSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data.done)) {
+            doneProducts = new Set(data.done);
+            localCache.set('planogram-done', JSON.stringify([...doneProducts]));
+            updateStats();
+            buildCategories();
+          }
+        }
+      });
+    } catch (e) { console.error(e); }
+  }
 }
 
 async function loadTheme() {
   try {
-    const res = storage.get('planogram-theme');
+    const res = localCache.get('planogram-theme');
     if (res && res.value) setTheme(res.value);
     else {
       const hour = new Date().getHours();
@@ -1432,7 +1485,7 @@ async function loadTheme() {
 }
 
 async function saveTheme(theme) {
-  try { storage.set('planogram-theme', theme); } catch (e) {}
+  try { localCache.set('planogram-theme', theme); } catch (e) {}
 }
 
 function setTheme(theme) {

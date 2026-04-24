@@ -6,6 +6,37 @@
 <title>Planogram · Ost og pålæg</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@zxing/library@0.21.0/umd/index.min.js"></script>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, onSnapshot, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDbDkK7dw2h-ev7HWR4FTkUv1K3sdxO93g",
+    authDomain: "planogram-citysp2.firebaseapp.com",
+    projectId: "planogram-citysp2",
+    storageBucket: "planogram-citysp2.firebasestorage.app",
+    messagingSenderId: "368892042986",
+    appId: "1:368892042986:web:5c12107dc73275fefc8193"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expose to window so regular scripts can use it
+  window.firebaseDB = db;
+  window.firebaseDoc = doc;
+  window.firebaseSetDoc = setDoc;
+  window.firebaseGetDoc = getDoc;
+  window.firebaseOnSnapshot = onSnapshot;
+  window.firebaseDeleteDoc = deleteDoc;
+  window.firebaseReady = true;
+
+  // Signal that Firebase is ready
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
   :root {
     /* Dark theme (default) */
@@ -184,6 +215,52 @@
   }
 
   .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Sync indicator */
+  .sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+
+  .sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    transition: background 0.3s;
+  }
+
+  .sync-indicator.connected {
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  .sync-indicator.connected .sync-dot {
+    background: var(--success);
+    animation: syncPulse 2s ease-in-out infinite;
+  }
+
+  .sync-indicator.offline {
+    border-color: var(--warning);
+    color: var(--warning);
+  }
+
+  .sync-indicator.offline .sync-dot {
+    background: var(--warning);
+  }
+
+  @keyframes syncPulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--success); opacity: 1; }
+    50% { box-shadow: 0 0 0 6px transparent; opacity: 0.8; }
+  }
 
   /* PROGRESS BAR */
   .progress-section {
@@ -1966,6 +2043,10 @@
       <span>Scan</span>
     </button>
   </div>
+  <div class="sync-indicator" id="syncIndicator" title="Sky-synkronisering">
+    <span class="sync-dot"></span>
+    <span class="sync-label">Sky</span>
+  </div>
   <button class="icon-btn" onclick="toggleTheme()" title="Skift tema" id="themeBtn">🌙</button>
 </div>
 
@@ -2445,8 +2526,13 @@ let expiryDates = {}; // { ean: [{ date: '2026-04-30', qty: 3 }, ...] }
 let scannerActive = false;
 let codeReader = null;
 
-// ============ STORAGE (localStorage wrapper for GitHub Pages) ============
-const storage = {
+// ============ STORAGE (Firebase Firestore — shared for all users) ============
+// Storage key used for both localStorage fallback and Firestore document ID
+const STORE_COLLECTION = 'planogram-data';
+const STORE_DOC_ID = 'ost-og-palaeg'; // One document per planogram
+
+// Local cache fallback (for offline or before Firebase loads)
+const localCache = {
   get(key) {
     try {
       const val = localStorage.getItem(key);
@@ -2454,64 +2540,156 @@ const storage = {
     } catch (e) { return null; }
   },
   set(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (e) { return false; }
+    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
   }
 };
 
-async function loadProgress() {
-  try {
-    const res = storage.get('planogram-done');
-    if (res && res.value) {
-      doneProducts = new Set(JSON.parse(res.value));
+// Wait for Firebase to be ready
+function waitForFirebase(timeout = 5000) {
+  return new Promise((resolve) => {
+    if (window.firebaseReady) { resolve(true); return; }
+    let done = false;
+    const onReady = () => { if (!done) { done = true; resolve(true); } };
+    window.addEventListener('firebase-ready', onReady, { once: true });
+    setTimeout(() => { if (!done) { done = true; resolve(false); } }, timeout);
+  });
+}
+
+// Sync state from Firestore snapshot
+function applyRemoteData(data) {
+  if (!data) return;
+  let changed = false;
+  if (Array.isArray(data.done)) {
+    const newSet = new Set(data.done);
+    if (newSet.size !== doneProducts.size || [...newSet].some(e => !doneProducts.has(e))) {
+      doneProducts = newSet;
+      changed = true;
     }
-  } catch (e) {
-    // No data yet, that's fine
   }
+  if (data.expiry && typeof data.expiry === 'object') {
+    expiryDates = data.expiry;
+    changed = true;
+  }
+  if (changed) {
+    updateProgress();
+    updateAllCards();
+    // Also update local cache as fallback
+    localCache.set('planogram-done', JSON.stringify([...doneProducts]));
+    localCache.set('planogram-expiry', JSON.stringify(expiryDates));
+  }
+}
+
+// Listen for realtime changes from Firebase
+let firebaseUnsubscribe = null;
+function startFirebaseSync() {
+  if (!window.firebaseReady) {
+    updateSyncStatus('offline');
+    return;
+  }
+  try {
+    const docRef = window.firebaseDoc(window.firebaseDB, STORE_COLLECTION, STORE_DOC_ID);
+    firebaseUnsubscribe = window.firebaseOnSnapshot(docRef, (snap) => {
+      updateSyncStatus('connected');
+      if (snap.exists()) {
+        applyRemoteData(snap.data());
+      }
+    }, (err) => {
+      console.error('Firebase sync error:', err);
+      updateSyncStatus('offline');
+      showToast('⚠️ Synkronisering afbrudt — bruger lokal data', 'warning');
+    });
+  } catch (e) {
+    console.error('Firebase setup error:', e);
+    updateSyncStatus('offline');
+  }
+}
+
+function updateSyncStatus(status) {
+  const indicator = document.getElementById('syncIndicator');
+  if (!indicator) return;
+  indicator.classList.remove('connected', 'offline');
+  if (status === 'connected') {
+    indicator.classList.add('connected');
+    indicator.querySelector('.sync-label').textContent = 'Sky';
+    indicator.title = 'Synkroniseret med sky — alle ser samme data';
+  } else if (status === 'offline') {
+    indicator.classList.add('offline');
+    indicator.querySelector('.sync-label').textContent = 'Offline';
+    indicator.title = 'Ingen sky-forbindelse — data gemmes kun lokalt';
+  }
+}
+
+// Save current state to Firebase
+let saveTimeout = null;
+async function syncToFirebase() {
+  if (!window.firebaseReady) return;
+  // Debounce to avoid too many writes
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try {
+      const docRef = window.firebaseDoc(window.firebaseDB, STORE_COLLECTION, STORE_DOC_ID);
+      await window.firebaseSetDoc(docRef, {
+        done: [...doneProducts],
+        expiry: expiryDates,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.error('Firebase save error:', e);
+    }
+  }, 500);
+}
+
+async function loadProgress() {
+  // Try local cache first for instant display
+  try {
+    const res = localCache.get('planogram-done');
+    if (res && res.value) doneProducts = new Set(JSON.parse(res.value));
+  } catch (e) {}
+
+  // Then Firebase takes over via onSnapshot
+  const ready = await waitForFirebase();
+  if (ready) {
+    startFirebaseSync();
+  }
+
   updateProgress();
   updateAllCards();
 }
 
 async function saveProgress() {
-  try {
-    storage.set('planogram-done', JSON.stringify([...doneProducts]));
-  } catch (e) { console.error(e); }
+  // Save locally (instant + offline fallback)
+  try { localCache.set('planogram-done', JSON.stringify([...doneProducts])); } catch (e) {}
+  // Sync to Firebase
+  syncToFirebase();
 }
 
 async function loadExpiryDates() {
   try {
-    const res = storage.get('planogram-expiry');
-    if (res && res.value) {
-      expiryDates = JSON.parse(res.value);
-    }
+    const res = localCache.get('planogram-expiry');
+    if (res && res.value) expiryDates = JSON.parse(res.value);
   } catch (e) {}
 }
 
 async function saveExpiryDates() {
-  try {
-    storage.set('planogram-expiry', JSON.stringify(expiryDates));
-  } catch (e) { console.error(e); }
+  try { localCache.set('planogram-expiry', JSON.stringify(expiryDates)); } catch (e) {}
+  syncToFirebase();
 }
 
 async function loadTheme() {
   try {
-    const res = storage.get('planogram-theme');
+    const res = localCache.get('planogram-theme');
     if (res && res.value) {
       setTheme(res.value);
     } else {
-      // Auto-detect based on time
       const hour = new Date().getHours();
       setTheme(hour >= 7 && hour < 19 ? 'light' : 'dark');
     }
-  } catch (e) {
-    setTheme('dark');
-  }
+  } catch (e) { setTheme('dark'); }
 }
 
 async function saveTheme(theme) {
-  try { storage.set('planogram-theme', theme); } catch (e) {}
+  // Theme stays local — personal preference per device
+  try { localCache.set('planogram-theme', theme); } catch (e) {}
 }
 
 function setTheme(theme) {
