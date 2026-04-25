@@ -876,6 +876,12 @@
   .fag-section.visual-mode .shelf-container { display: none; }
   .fag-section.visual-mode .visual-shelf-container { display: block; }
 
+  /* Collapsed state — overrides both views */
+  .fag-section.collapsed .shelf-container,
+  .fag-section.collapsed .visual-shelf-container {
+    display: none !important;
+  }
+
   .visual-shelf {
     background: linear-gradient(180deg, var(--surface2), var(--surface));
     border: 1px solid var(--border);
@@ -3005,15 +3011,12 @@ function updateVisualCard(ean) {
 const collapsedFags = new Set();
 function toggleFag(f) {
   const section = document.getElementById(`fag-section-${f}`);
-  const body = document.getElementById(`fag-body-${f}`);
-  if (!section || !body) return;
+  if (!section) return;
 
   if (collapsedFags.has(f)) {
-    body.style.display = '';
     section.classList.remove('collapsed');
     collapsedFags.delete(f);
   } else {
-    body.style.display = 'none';
     section.classList.add('collapsed');
     collapsedFags.add(f);
   }
@@ -3023,8 +3026,6 @@ function toggleFag(f) {
 function expandAllFags() {
   for (let f = 1; f <= 8; f++) {
     const section = document.getElementById(`fag-section-${f}`);
-    const body = document.getElementById(`fag-body-${f}`);
-    if (body) body.style.display = '';
     if (section) section.classList.remove('collapsed');
   }
   collapsedFags.clear();
